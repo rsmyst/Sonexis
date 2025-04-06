@@ -3,29 +3,24 @@ import React, { useState } from "react";
 import { LoginForm } from "./login-form";
 import { SignupForm } from "./signup-form";
 
-export function AuthContainer() {
+interface AuthContainerProps {
+  onLogin?: (email: string, password: string) => void;
+  onSignup?: (email: string, password: string, name: string) => void;
+}
+
+export function AuthContainer({ onLogin, onSignup }: AuthContainerProps) {
   const [isLogin, setIsLogin] = useState(true);
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
   };
 
-  const handleLogin = (email: string, password: string) => {
-    console.log("Login attempt with:", email, password);
-    // Implement actual login logic here
-  };
-
-  const handleSignup = (formData: any) => {
-    console.log("Signup with data:", formData);
-    // Implement actual signup logic here
-  };
-
   return (
     <div className="w-full">
       {isLogin ? (
-        <LoginForm onLogin={handleLogin} onToggleForm={toggleForm} />
+        <LoginForm onLogin={onLogin} onToggleForm={toggleForm} />
       ) : (
-        <SignupForm onToggleForm={toggleForm} />
+        <SignupForm onSignup={onSignup} onToggleForm={toggleForm} />
       )}
     </div>
   );

@@ -10,18 +10,40 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        // Implement your user authentication logic here
-        return { id: "1", name: "User", email: credentials?.email };
+        // For now, we'll accept any credentials
+        // In a real app, you would verify against your database
+        if (credentials?.email && credentials?.password) {
+          return {
+            id: "1",
+            name: "User",
+            email: credentials.email,
+          };
+        }
+        return null;
       },
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here",
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      session.user.id = token.sub ?? "";
+      if (session.user) {
+        session.user.id = token.sub ?? "";
+      }
       return session;
     },
+  },
+  pages: {
+    signIn: "/",
+    error: "/",
   },
 };

@@ -1,5 +1,9 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { FontProvider } from "@/components/font-provider";
+import { Providers } from "./providers";
+import NavbarWrapper from "@/components/NavbarWrapper";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "micSQL",
@@ -25,8 +29,10 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&family=Tektur:wght@400..900&display=swap"
         />
       </head>
-      <body>
-        <FontProvider>{children}</FontProvider>
+      <body className={inter.className}>
+        <Providers>
+          <NavbarWrapper>{children}</NavbarWrapper>
+        </Providers>
       </body>
     </html>
   );

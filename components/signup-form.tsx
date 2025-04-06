@@ -1,73 +1,73 @@
 "use client";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface SignupFormProps {
-  onSignup?: (email: string, password: string, name: string) => void;
   onToggleForm?: () => void;
 }
 
-export function SignupForm({ onSignup, onToggleForm }: SignupFormProps) {
-  const [email, setEmail] = useState("");
+export function SignupForm({ onToggleForm }: SignupFormProps) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Handle signup logic here
-      onSignup?.(email, password, name);
+      // TODO: Implement signup logic with your backend
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        router.push("/login");
+      } else {
+        const data = await response.json();
+        alert(data.message || "Signup failed");
+      }
     } catch (error) {
-      console.error("Signup failed:", error);
+      console.error("Signup error:", error);
+      alert("An error occurred during signup");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="border rounded-lg p-6 w-full max-w-md mx-auto bg-card shadow-md">
-      <h2
-        className="text-2xl font-semibold mb-6 text-center text-card-foreground font-jaro"
-        style={{ fontFamily: "Jaro, sans-serif" }}
-      >
-        Sign up for micSQL
+    <div className="w-full max-w-md mx-auto p-6 rounded-lg bg-[#241a13] shadow-lg">
+      <h2 className="text-2xl font-bold mb-6 text-center theme-text-accent">
+        Create Account
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label
-            htmlFor="name"
+            htmlFor="username"
             className="text-sm font-medium text-foreground font-jaro"
           >
-            Name
+            Username
           </label>
           <input
-            id="name"
+            id="username"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your name"
-            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="email"
-            className="text-sm font-medium text-foreground font-jaro"
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Choose a username"
             className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
             required
           />
@@ -85,7 +85,25 @@ export function SignupForm({ onSignup, onToggleForm }: SignupFormProps) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder="Create a password"
+            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="confirmPassword"
+            className="text-sm font-medium text-foreground font-jaro"
+          >
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm your password"
             className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
             required
           />
@@ -107,7 +125,7 @@ export function SignupForm({ onSignup, onToggleForm }: SignupFormProps) {
           Already have an account?{" "}
           <button
             onClick={onToggleForm}
-            className="text-primary hover:underline"
+            className="text-primary hover:underline font-medium"
           >
             Log in
           </button>

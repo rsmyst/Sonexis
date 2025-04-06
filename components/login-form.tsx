@@ -1,52 +1,60 @@
-import React, { useState } from "react";
+"use client";
+
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface LoginFormProps {
-  onLogin?: (email: string, password: string) => void;
   onToggleForm?: () => void;
 }
 
-export function LoginForm({ onLogin, onToggleForm }: LoginFormProps) {
-  const [email, setEmail] = useState("");
+export function LoginForm({ onToggleForm }: LoginFormProps) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Handle login logic here
-      onLogin?.(email, password);
+      const result = await signIn("credentials", {
+        username,
+        password,
+        redirect: false,
+      });
+
+      if (!result?.error) {
+        router.push("/");
+      }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="border rounded-lg p-6 w-full max-w-md mx-auto bg-card shadow-md">
-      <h2
-        className="text-2xl font-semibold mb-6 text-center text-card-foreground font-jaro"
-        style={{ fontFamily: "Jaro, sans-serif" }}
-      >
-        Log in to micSQL
+    <div className="w-full max-w-md mx-auto p-6 rounded-lg bg-[#241a13] shadow-lg">
+      <h2 className="text-2xl font-bold mb-6 text-center theme-text-accent">
+        Welcome Back
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label
-            htmlFor="email"
+            htmlFor="username"
             className="text-sm font-medium text-foreground font-jaro"
           >
-            Email
+            Username
           </label>
           <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
             className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
             required
           />
@@ -83,10 +91,10 @@ export function LoginForm({ onLogin, onToggleForm }: LoginFormProps) {
 
       <div className="mt-6 text-center text-sm">
         <p className="text-muted-foreground">
-          Do not have an account?{" "}
+          Don&apos;t have an account?{" "}
           <button
             onClick={onToggleForm}
-            className="text-primary hover:underline"
+            className="text-primary hover:underline font-medium"
           >
             Sign up
           </button>
