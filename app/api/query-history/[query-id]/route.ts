@@ -14,12 +14,10 @@ export async function GET(
         if (!session?.user) {
             return NextResponse.json({ error: "unauthorized" }, { status: 401 });
         }
-
         const queryId = params["query-id"];
         if (!queryId) {
             return NextResponse.json({ error: "query ID is required" }, { status: 400 });
         }
-
         // Fetch the query history entry
         const queryHistory = await prisma.queryHistory.findUnique({
             where: {
@@ -47,7 +45,6 @@ export async function GET(
             createdAt: queryHistory.createdAt,
             visualization: queryHistory.visualization
         });
-
     } catch (error) {
         console.error("Error fetching query history:", error);
         return NextResponse.json(
