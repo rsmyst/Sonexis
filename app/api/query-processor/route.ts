@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from "axios";
 import FormData from "form-data";
 import fs from "fs";
@@ -13,6 +14,7 @@ const prisma = new PrismaClient();
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // This is the main endpoint for processing natural language to SQL
 export const POST = async (req: NextRequest) => {
@@ -28,32 +30,49 @@ export const POST = async (req: NextRequest) => {
         // - optional parameters (date ranges, filters, etc.)
         const {
             query,
-            audioData,
+            audioFile,
             parameters,
-            requestVoiceAuth = false,
-            audioPath
+            requestVoiceAuth = false
         } = await req.json();
 
         // STEP 1: Handle voice authentication if requested
         if (requestVoiceAuth) {
-            if (!audioPath) {
-                return NextResponse.json({ error: "audio path required for voice authentication" }, { status: 400 });
+            if (!audioFile) {
+                return NextResponse.json({ error: "audio file required for voice authentication" }, { status: 400 });
             }
 
-            const isAuthenticated = await verifyVoiceIdentity(session.user.id, audioPath);
+            // Save audio to temporary file
+            const tempDir = os.tmpdir();
+            const tempFilePath = path.join(tempDir, `auth-${Date.now()}.wav`);
+            const buffer = Buffer.from(audioFile, 'base64');
+            fs.writeFileSync(tempFilePath, buffer);
+
+            const isAuthenticated = await verifyVoiceIdentity(session.user.id, tempFilePath);
+            
+            // Clean up temp file
+            fs.unlinkSync(tempFilePath);
             
             if (!isAuthenticated) {
                 return NextResponse.json({ error: "voice authentication failed" }, { status: 401 });
             }
         }
 
-        // STEP 2: Process speech to text if audio data is provided
+        // STEP 2: Process speech to text if audio file is provided
         let textQuery = query;
-        if (audioData && !textQuery) {
+        if (audioFile && !textQuery) {
             try {
+                // Save audio to temporary file
+                const tempDir = os.tmpdir();
+                const tempFilePath = path.join(tempDir, `stt-${Date.now()}.wav`);
+                const buffer = Buffer.from(audioFile, 'base64');
+                fs.writeFileSync(tempFilePath, buffer);
+
                 // Process audio to text using Whisper API
-                textQuery = await processAudioToText(audioData);
+                textQuery = await processAudioToText(tempFilePath);
                 console.log("Processed audio to text:", textQuery);
+
+                // Clean up temp file
+                fs.unlinkSync(tempFilePath);
             } catch (error) {
                 console.error("Speech-to-text processing error:", error);
                 return NextResponse.json({ 
@@ -187,65 +206,17 @@ async function verifyVoiceIdentity(userId: string, audioPath: string): Promise<b
 }
 
 // Process audio to text using OpenAI Whisper API
-async function processAudioToText(audioData: Buffer | string): Promise<string> {
+async function processAudioToText(audioPath: string): Promise<string> {
     try {
-        // Handle different types of audio input
-        if (typeof audioData === 'string') {
-            if (audioData.startsWith('data:audio')) {
-                // Handle base64 encoded audio data
-                const base64Data = audioData.split(',')[1];
-                const buffer = Buffer.from(base64Data, 'base64');
-                
-                // Save buffer to temp file using os.tmpdir()
-                const tempFilePath = path.join(os.tmpdir(), `audio-${Date.now()}.webm`);
-                fs.writeFileSync(tempFilePath, buffer);
-                
-                // Use the file path for upload
-                const transcription = await openai.audio.transcriptions.create({
-                    file: fs.createReadStream(tempFilePath),
-                    model: "gpt-4o-transcribe",
-                    response_format: "json",
-                    prompt: "This is a business query about data analysis, sales metrics, or product performance."
-                });
-                
-                // Clean up temp file
-                fs.unlinkSync(tempFilePath);
-                
-                console.log('Transcription successful:', transcription.text);
-                return transcription.text;
-            } else if (fs.existsSync(audioData)) {
-                // Use existing file path
-                const transcription = await openai.audio.transcriptions.create({
-                    file: fs.createReadStream(audioData),
-                    model: "gpt-4o-transcribe",
-                    response_format: "json",
-                    prompt: "This is a business query about data analysis, sales metrics, or product performance."
-                });
-                
-                console.log('Transcription successful:', transcription.text);
-                return transcription.text;
-            }
-        } else if (Buffer.isBuffer(audioData)) {
-            // Save buffer to temp file using os.tmpdir()
-            const tempFilePath = path.join(os.tmpdir(), `audio-${Date.now()}.mp3`);
-            fs.writeFileSync(tempFilePath, audioData);
-            
-            // Use the file path for upload
-            const transcription = await openai.audio.transcriptions.create({
-                file: fs.createReadStream(tempFilePath),
-                model: "gpt-4o-transcribe",
-                response_format: "json",
-                prompt: "This is a business query about data analysis, sales metrics, or product performance."
-            });
-            
-            // Clean up temp file
-            fs.unlinkSync(tempFilePath);
-            
-            console.log('Transcription successful:', transcription.text);
-            return transcription.text;
-        }
+        const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(audioPath),
+            model: "whisper-1",
+            response_format: "json",
+            prompt: "This is a business query about data analysis, sales metrics, or product performance."
+        });
         
-        throw new Error('Invalid audio data format');
+        console.log('Transcription successful:', transcription.text);
+        return transcription.text;
     } catch (error: any) {
         console.error('Error in audio transcription:', 
             error.response?.data?.error?.message || error.message);
@@ -262,69 +233,63 @@ async function processNaturalLanguageToSQL(
     sqlQuery: string;
     relatedQueries: any;
     suggestedVisualization?: any;
-    insights?: string[];
 }> {
-    // In production, this would call the Gemini API or another LLM
-    // It would include the database schema as contextx
-    // For now, we'll return a placeholder SQL query
-    const mockSQL = `SELECT product_name, SUM(sale_amount) as total_sales 
-                    FROM sales 
-                    WHERE sale_date >= '2023-10-01' AND sale_date <= '2023-12-31' 
-                    GROUP BY product_name 
-                    ORDER BY total_sales DESC`;
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const mockRelatedQueries = [
+        // Prepare the prompt with database schema and user query
+        const prompt = `Given the following database schema and user query, generate an appropriate SQL query.
+        Also suggest related queries and a suitable visualization (available charts : area_chart, bar_chart_interactive, regular_bar_graph, pie_chart, stack_graph).
+
+        Database Schema:
+        ${JSON.stringify(dbMetadata, null, 2)}
+
+        User Query: ${query}
+
+        Parameters: ${JSON.stringify(parameters || {})}
+
+        Please provide:
+        1. A SQL query that answers the user's question
+        2. 2-3 related queries that could provide additional insights
+        3. A suggested visualization type and configuration
+
+        Format the response as a JSON object with the following structure:
         {
-            description: "Sales trend over time",
-            sql: `SELECT DATE_TRUNC('month', sale_date) as month, SUM(sale_amount) as monthly_sales 
-                 FROM sales 
-                 WHERE sale_date >= '2023-01-01' AND sale_date <= '2023-12-31' 
-                 GROUP BY month 
-                 ORDER BY month`
-        },
-        {
-            description: "Top performing categories",
-            sql: `SELECT category, SUM(sale_amount) as category_sales 
-                 FROM sales 
-                 JOIN products ON sales.product_id = products.id
-                 WHERE sale_date >= '2023-10-01' AND sale_date <= '2023-12-31' 
-                 GROUP BY category 
-                 ORDER BY category_sales DESC`
-        },
-        {
-            description: "Year-over-year comparison",
-            sql: `SELECT EXTRACT(YEAR FROM sale_date) as year, SUM(sale_amount) as yearly_sales 
-                 FROM sales 
-                 WHERE sale_date >= '2022-10-01' AND sale_date <= '2023-12-31' 
-                 GROUP BY year 
-                 ORDER BY year`
-        }
-    ];
+            "sqlQuery": "the generated SQL query",
+            "relatedQueries": [
+                {
+                    "description": "description of the related query",
+                    "sql": "the SQL query"
+                }
+            ],
+            "suggestedVisualization": {
+                "chartType": "type of chart (e.g., bar, line, pie)",
+                "chartOptions": {
+                    "xAxis": { "key": "column name", "label": "axis label" },
+                    "yAxis": { "key": "column name", "label": "axis label" },
+                    "colors": ["color1", "color2"]
+                },
+                "title": "chart title",
+                "description": "chart description"
+            }
+        }`;
 
-    const mockVisualization = {
-        chartType: "bar",
-        chartOptions: {
-            xAxis: { key: "product_name", label: "Product" },
-            yAxis: { key: "total_sales", label: "Total Sales ($)" },
-            colors: ["#4f46e5", "#818cf8"]
-        },
-        title: "Sales by Product (Q4 2023)",
-        description: "Bar chart showing total sales for each product in Q4 2023"
-    };
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
 
-    const mockInsights = [
-        "Product X had the highest sales at $125,000, representing 28% of total quarterly sales",
-        "Average sales were up 15% compared to the previous quarter",
-        "Three new products launched this quarter are already in the top 10 performers",
-        "Weekend sales were 32% higher than weekday sales"
-    ];
+        // Parse the JSON response
+        const parsedResponse = JSON.parse(text);
 
-    return {
-        sqlQuery: mockSQL,
-        relatedQueries: mockRelatedQueries,
-        suggestedVisualization: mockVisualization,
-        insights: mockInsights
-    };
+        return {
+            sqlQuery: parsedResponse.sqlQuery,
+            relatedQueries: parsedResponse.relatedQueries,
+            suggestedVisualization: parsedResponse.suggestedVisualization
+        };
+    } catch (error) {
+        console.error("Error generating SQL with Gemini:", error);
+        throw new Error("Failed to generate SQL query");
+    }
 }
 
 // Helper function to validate modification queries
