@@ -29,6 +29,7 @@ export default function AdminControls() {
   const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [newUserName, setNewUserName] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -99,11 +100,19 @@ export default function AdminControls() {
 
   const processVoiceEnrollment = async (audioBlob: Blob) => {
     try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob);
-      formData.append("name", newUserName);
+      if (!selectedUser?.id) {
+        throw new Error("No user selected for voice enrollment");
+      }
 
-      const response = await fetch("/api/admin/voice-enroll", {
+      const formData = new FormData();
+      formData.append("userId", selectedUser.id);
+      formData.append("audioData", audioBlob);
+      formData.append(
+        "audioPath",
+        `voice_enrollment_${selectedUser.id}_${Date.now()}.wav`
+      );
+
+      const response = await fetch("/api/voice-profile", {
         method: "POST",
         body: formData,
       });
@@ -112,18 +121,23 @@ export default function AdminControls() {
         setRecordingStatus("Voice enrollment successful");
         toast.success("Voice enrollment completed");
       } else {
-        throw new Error("Voice enrollment failed");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Voice enrollment failed");
       }
     } catch (error) {
       console.error("Error processing voice enrollment:", error);
       setRecordingStatus("Error processing voice enrollment");
-      toast.error("Failed to process voice enrollment");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to process voice enrollment"
+      );
     }
   };
 
   const handleAddUser = async () => {
-    if (!newUserName) {
-      toast.error("Please enter a user name");
+    if (!newUserName || !newUserPassword) {
+      toast.error("Please enter both user name and password");
       return;
     }
 
@@ -136,6 +150,7 @@ export default function AdminControls() {
         },
         body: JSON.stringify({
           name: newUserName,
+          password: newUserPassword,
           role: isAdmin ? "ADMIN" : "USER",
         }),
       });
@@ -143,6 +158,7 @@ export default function AdminControls() {
       if (response.ok) {
         await fetchUsers();
         setNewUserName("");
+        setNewUserPassword("");
         setIsAdmin(false);
         toast.success("User added successfully");
       } else {
@@ -254,37 +270,31 @@ export default function AdminControls() {
             <div>
               <Label>Add New User</Label>
               <div className="flex flex-col gap-4 mt-2">
-                <div className="flex gap-4">
-                  <Input
-                    placeholder="Enter user name"
-                    value={newUserName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setNewUserName(e.target.value)
-                    }
-                  />
-                  <div className="flex items-center gap-2">
-                    <Switch checked={isAdmin} onCheckedChange={setIsAdmin} />
-                    <Label>Admin</Label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <Input
+                      placeholder="Enter user name"
+                      value={newUserName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setNewUserName(e.target.value)
+                      }
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Enter password"
+                      value={newUserPassword}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setNewUserPassword(e.target.value)
+                      }
+                    />
+                    <div className="flex items-center gap-2">
+                      <Switch checked={isAdmin} onCheckedChange={setIsAdmin} />
+                      <Label>Admin</Label>
+                    </div>
+                    <Button onClick={handleAddUser} disabled={isEnrolling}>
+                      {isEnrolling ? "Enrolling..." : "Add User"}
+                    </Button>
                   </div>
-                  <Button onClick={handleAddUser} disabled={isEnrolling}>
-                    {isEnrolling ? "Enrolling..." : "Add User"}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={`p-4 rounded-full ${
-                      isRecording
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-[#694A38] hover:bg-[#5a3f30]"
-                    } transition-colors`}
-                    disabled={!newUserName}
-                  >
-                    <IconMicrophone size={24} className="theme-text-accent" />
-                  </Button>
-                  {recordingStatus && (
-                    <p className="text-sm text-gray-500">{recordingStatus}</p>
-                  )}
                 </div>
               </div>
             </div>
@@ -369,6 +379,24 @@ export default function AdminControls() {
               <Label className="text-right">Created</Label>
               <div className="col-span-3">
                 {selectedUser && formatDate(selectedUser.createdAt)}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Voice Profile</Label>
+              <div className="col-span-3 flex items-center gap-4">
+                <Button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`p-4 rounded-full ${
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-[#694A38] hover:bg-[#5a3f30]"
+                  } transition-colors`}
+                >
+                  <IconMicrophone size={24} className="theme-text-accent" />
+                </Button>
+                {recordingStatus && (
+                  <p className="text-sm text-gray-500">{recordingStatus}</p>
+                )}
               </div>
             </div>
           </div>
