@@ -35,7 +35,9 @@ export default function QueryHistoryPage() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch("/api/user/history");
+      const response = await fetch(
+        `/api/query-history/user/${session?.user?.id}`
+      );
       if (response.ok) {
         const data = await response.json();
         setHistory(data);
@@ -55,7 +57,7 @@ export default function QueryHistoryPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-25">
       <Card>
         <CardHeader>
           <CardTitle>Query History</CardTitle>

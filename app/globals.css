@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Import Jaro from Google Fonts */
-@import url("https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&family=Tektur:wght@400..900&display=swap");
+/* Import Orbitron from Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap");
 
 @theme inline {
   --shadow-input: 0px 2px 3px -1px rgba(0, 0, 0, 0.1),
@@ -67,7 +67,7 @@
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
   /* Updated font variables for better specificity */
-  --font-jaro: "Jaro", sans-serif !important;
+  --font-orbitron: "Orbitron", sans-serif !important;
   --font-tektur: "Tektur", sans-serif !important;
 }
 
@@ -80,9 +80,34 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+/* Ensure all elements use Orbitron by default */
 * {
-  font-family: var(--font-jaro);
+  font-family: var(--font-orbitron) !important;
 }
+
+/* Specific styles for form elements */
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-orbitron) !important;
+}
+
+/* Navbar specific styles */
+nav,
+.navbar,
+.nav-item,
+.nav-link {
+  font-family: var(--font-orbitron) !important;
+}
+
+/* Form input specific styles */
+.form-input {
+  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
+  font-family: var(--font-orbitron) !important;
+}
+
 .dark {
   /* Using the same colors as root for consistency */
   --background: #000000;
@@ -114,8 +139,8 @@ body {
   }
 }
 
-.font-jaro {
-  font-family: var(--font-jaro) !important;
+.font-orbitron {
+  font-family: var(--font-orbitron) !important;
 }
 
 .font-tektur {
@@ -124,17 +149,17 @@ body {
 
 /* Add a global font class that can be applied to the body or specific elements */
 .app-font {
-  font-family: var(--font-jaro) !important;
+  font-family: var(--font-orbitron) !important;
 }
 
-/* Ensure headings use Jaro by default */
+/* Ensure headings use Orbitron by default */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-jaro) !important;
+  font-family: var(--font-orbitron) !important;
 }
 
 /* Common form styles */

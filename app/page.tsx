@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { IconMicrophone } from "@tabler/icons-react";
+import { IconMicrophoneFilled } from "@tabler/icons-react";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -156,13 +156,11 @@ export default function Home() {
           <button
             onClick={isRecording ? stopRecording : startRecording}
             className={`p-4 rounded-full ${
-              isRecording
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-[#694A38] hover:bg-[#5a3f30]"
+              isRecording ? "bg-red-500 hover:bg-red-600" : ""
             } transition-colors`}
             aria-label={isRecording ? "Stop recording" : "Start recording"}
           >
-            <IconMicrophone size={48} className="text-[#bfff00]" />
+            <IconMicrophoneFilled size={48} className="text-[#bfff00]" />
           </button>
           {recordingStatus && (
             <p className="mt-4 text-sm text-[#bfff00]/80">{recordingStatus}</p>
