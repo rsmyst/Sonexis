@@ -40,7 +40,7 @@ export default function QueryHistoryPage() {
       );
       if (response.ok) {
         const data = await response.json();
-        setHistory(data);
+        setHistory(data.queries);
       }
     } catch (err) {
       console.error("Error fetching history:", err);
