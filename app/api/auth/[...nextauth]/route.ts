@@ -19,6 +19,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials) {
           throw new Error("credentials undefined");
         }
+        console.log(`credentials : ${JSON.stringify(credentials)}`)
         const { userId, password } = credentials;
         if (!userId || !password) {
           throw new Error("missing userId or password");

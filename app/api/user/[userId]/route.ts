@@ -65,10 +65,20 @@ export const PATCH = async (
     console.log("PATCH request received:", { userId, name, role });
 
     // Only include fields that are provided in the update
-    const updateData: { name?: string; password?: string; role?: string } = {};
+    const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (password !== undefined) updateData.password = password;
-    if (role !== undefined) updateData.role = role;
+    if (role !== undefined) {
+      // Ensure role is a valid enum value
+      if (role === "USER" || role === "ADMIN") {
+        updateData.role = role;
+      } else {
+        return NextResponse.json(
+          { error: "Invalid role. Must be USER or ADMIN" },
+          { status: 400 }
+        );
+      }
+    }
 
     console.log("Update data:", updateData);
 
