@@ -4,11 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-interface LoginFormProps {
-  onToggleForm?: () => void;
-}
-
-export function LoginForm({ onToggleForm }: LoginFormProps) {
+export function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -88,18 +84,6 @@ export function LoginForm({ onToggleForm }: LoginFormProps) {
           </button>
         </div>
       </form>
-
-      <div className="mt-6 text-center text-sm">
-        <p className="text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <button
-            onClick={onToggleForm}
-            className="text-primary hover:underline font-medium"
-          >
-            Sign up
-          </button>
-        </p>
-      </div>
     </div>
   );
 }

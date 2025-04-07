@@ -1,27 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { LoginForm } from "./login-form";
-import { SignupForm } from "./signup-form";
+import { useSession } from "next-auth/react";
 
-interface AuthContainerProps {
-  onLogin?: (email: string, password: string) => void;
-  onSignup?: (email: string, password: string, name: string) => void;
-}
+export function AuthContainer() {
+  const { data: session } = useSession();
 
-export function AuthContainer({ onLogin, onSignup }: AuthContainerProps) {
-  const [isLogin, setIsLogin] = useState(true);
-
-  const toggleForm = () => {
-    setIsLogin(!isLogin);
-  };
+  if (session) {
+    return null;
+  }
 
   return (
-    <div className="w-full">
-      {isLogin ? (
-        <LoginForm onLogin={onLogin} onToggleForm={toggleForm} />
-      ) : (
-        <SignupForm onSignup={onSignup} onToggleForm={toggleForm} />
-      )}
+    <div className="min-h-screen flex items-center justify-center theme-bg-dark">
+      <LoginForm />
     </div>
   );
 }
