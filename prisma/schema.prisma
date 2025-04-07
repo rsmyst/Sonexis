@@ -161,5 +161,5 @@ model UserSettings {
   // Relations
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("user_settings")
+  @@map("user_settings")  
 }
