@@ -5,7 +5,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 
 const prisma = new PrismaClient();
 
-// Get query history for a user with pagination and filters
+// Get query history for a user without pagination
 export const GET = async (req: NextRequest) => {
     try {
         const session = await getServerSession(authOptions);
@@ -13,48 +13,20 @@ export const GET = async (req: NextRequest) => {
             return NextResponse.json({ error: "unauthorized" }, { status: 401 });
         }
 
-        const searchParams = req.nextUrl.searchParams;
-        const userId = searchParams.get("userId");
-        const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 10;
-        const page = searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1;
-        const skip = (page - 1) * limit;
-        const successful = searchParams.get("successful") ? searchParams.get("successful") === "true" : undefined;
-
-        // If admin, allow fetching any user's query history
-        // If regular user, only allow fetching their own query history
-        if (session.user.role !== "ADMIN" && userId !== session.user.id) {
-            return NextResponse.json({ error: "unauthorized: can only access your own query history" }, { status: 403 });
-        }
-
-        // Build the query filter
-        const where = {
-            userId: userId || session.user.id,
-            ...(successful !== undefined ? { successful } : {})
-        };
-
-        // Get paginated query history
-        const [queries, total] = await Promise.all([
-            prisma.queryHistory.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take: limit,
-                include: {
-                    visualization: true
-                }
-            }),
-            prisma.queryHistory.count({ where })
-        ]);
-
-        return NextResponse.json({
-            queries,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
+        // Get all queries for the current user
+        const queries = await prisma.queryHistory.findMany({
+            where: {
+                userId: session.user.id
+            },
+            orderBy: { 
+                createdAt: 'desc' 
+            },
+            include: {
+                visualization: true
             }
         });
+
+        return NextResponse.json({ queries });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ error: "error fetching query history" }, { status: 500 });

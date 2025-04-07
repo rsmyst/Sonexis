@@ -16,6 +16,9 @@ const openai = new OpenAI({
 });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+// Local Whisper API URL - you need to run the Whisper API server locally
+const WHISPER_LOCAL_API_URL = process.env.WHISPER_LOCAL_API_URL || "http://localhost:9000";
+
 // This is the main endpoint for processing natural language to SQL
 export const POST = async (req: NextRequest) => {
     let textQuery: string | undefined;
@@ -67,7 +70,7 @@ export const POST = async (req: NextRequest) => {
                 const buffer = Buffer.from(audioFile, 'base64');
                 fs.writeFileSync(tempFilePath, buffer);
 
-                // Process audio to text using Whisper API
+                // Process audio to text using local Whisper API
                 textQuery = await processAudioToText(tempFilePath);
                 console.log("Processed audio to text:", textQuery);
 
@@ -205,21 +208,31 @@ async function verifyVoiceIdentity(userId: string, audioPath: string): Promise<b
     }
 }
 
-// Process audio to text using OpenAI Whisper API
+// Process audio to text using local Whisper API
 async function processAudioToText(audioPath: string): Promise<string> {
     try {
-        const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(audioPath),
-            model: "whisper-1",
-            response_format: "json",
-            prompt: "This is a business query about data analysis, sales metrics, or product performance."
+        // Create form data with the audio file
+        const formData = new FormData();
+        formData.append('audio_file', fs.createReadStream(audioPath));
+        
+        // Send to local Whisper API
+        const response = await axios.post(`${WHISPER_LOCAL_API_URL}/transcribe`, formData, {
+            headers: {
+                ...formData.getHeaders(),
+                'Accept': 'application/json',
+            },
         });
         
-        console.log('Transcription successful:', transcription.text);
-        return transcription.text;
+        if (response.status !== 200) {
+            throw new Error(`Local Whisper API returned status ${response.status}`);
+        }
+        
+        const transcription = response.data.text;
+        console.log('Transcription successful:', transcription);
+        return transcription;
     } catch (error: any) {
         console.error('Error in audio transcription:', 
-            error.response?.data?.error?.message || error.message);
+            error.response?.data?.message || error.message);
         throw new Error(`Failed to process audio to text: ${error.message}`);
     }
 }
