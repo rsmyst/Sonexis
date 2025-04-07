@@ -27,7 +27,7 @@ export const authOptions : NextAuthOptions = {
                 }
                 try {
                     const user = await prisma.user.findUnique({
-                        where : { id : userId }
+                        where : { userId : parseInt(userId) }
                     });
                     if(!user) {
                         throw new Error("invalid userId");
