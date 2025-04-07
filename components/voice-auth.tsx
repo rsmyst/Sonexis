@@ -54,9 +54,15 @@ export function VoiceAuth({ onAuthenticate }: VoiceAuthProps) {
       const formData = new FormData();
       formData.append("audio", audioBlob);
 
-      const response = await fetch("/api/auth/voice", {
+      const response = await fetch("/api/auth/verify", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestVoiceAuth: true,
+          audioFile: await audioBlob.arrayBuffer(),
+        }),
       });
 
       if (!response.ok) {

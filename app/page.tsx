@@ -53,7 +53,7 @@ export default function Home() {
       const formData = new FormData();
       formData.append("audio", audioBlob);
 
-      const response = await fetch("/api/auth/voice", {
+      const response = await fetch("/api/query-processor", {
         method: "POST",
         body: formData,
       });
@@ -149,7 +149,6 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
       <div className="w-full max-w-3xl flex flex-col items-center">
         <h1 className="text-4xl font-bold mb-8 text-[#bfff00] text-center">
-        <h1 className="text-4xl font-bold mb-8 text-[#bfff00] text-center">
           Good Morning, what would you like to enquire about today?
         </h1>
 
@@ -174,7 +173,6 @@ export default function Home() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Or type your query here... (Press Enter to submit)"
-            className="w-full px-4 py-2 rounded-lg bg-transparent border-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:ring-2 focus:ring-[#00e1ff]"
             className="w-full px-4 py-2 rounded-lg bg-transparent border-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:ring-2 focus:ring-[#00e1ff]"
           />
         </form>

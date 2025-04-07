@@ -42,6 +42,7 @@ model VoiceProfile {
   embeddings    Json    // Binary voice embeddings data
   modelVersion  String?
   isActive      Boolean  @default(true)
+  audioPath     String?  // Path to the audio file
   createdAt     DateTime @default(now())
   lastUpdated   DateTime @updatedAt
   
