@@ -136,7 +136,7 @@ export const PUT = async (req: NextRequest) => {
     }
 };
 
-// Delete table metadata (admin only)
+// Delete table metadata (admin only)   
 export const DELETE = async (req: NextRequest) => {
     try {
         const session = await getServerSession(authOptions);
