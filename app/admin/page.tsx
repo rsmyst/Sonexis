@@ -8,11 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { IconMicrophone } from "@tabler/icons-react";
+import { IconMicrophone, IconEdit, IconTrash } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import React from "react";
 
 interface User {
   id: string;
-  userId: string;
+  name: string;
   role: "USER" | "ADMIN";
   createdAt: string;
 }
@@ -20,11 +28,15 @@ interface User {
 export default function AdminControls() {
   const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
-  const [newUserId, setNewUserId] = useState("");
+  const [newUserName, setNewUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStatus, setRecordingStatus] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"USER" | "ADMIN">("USER");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -36,7 +48,7 @@ export default function AdminControls() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/admin/users");
+      const response = await fetch("/api/user");
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -89,7 +101,7 @@ export default function AdminControls() {
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob);
-      formData.append("userId", newUserId);
+      formData.append("name", newUserName);
 
       const response = await fetch("/api/admin/voice-enroll", {
         method: "POST",
@@ -110,27 +122,27 @@ export default function AdminControls() {
   };
 
   const handleAddUser = async () => {
-    if (!newUserId) {
-      toast.error("Please enter a user ID");
+    if (!newUserName) {
+      toast.error("Please enter a user name");
       return;
     }
 
     setIsEnrolling(true);
     try {
-      const response = await fetch("/api/admin/users", {
+      const response = await fetch("/api/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: newUserId,
-          isAdmin,
+          name: newUserName,
+          role: isAdmin ? "ADMIN" : "USER",
         }),
       });
 
       if (response.ok) {
         await fetchUsers();
-        setNewUserId("");
+        setNewUserName("");
         setIsAdmin(false);
         toast.success("User added successfully");
       } else {
@@ -144,15 +156,15 @@ export default function AdminControls() {
     }
   };
 
-  const handleToggleAdmin = async (userId: string, currentRole: string) => {
+  const handleToggleAdmin = async (id: string, currentRole: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/user/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          isAdmin: currentRole === "USER",
+          role: currentRole === "USER" ? "ADMIN" : "USER",
         }),
       });
 
@@ -172,8 +184,67 @@ export default function AdminControls() {
     return new Date(dateString).toLocaleString();
   };
 
+  const handleUserClick = (user: User) => {
+    setSelectedUser(user);
+    setEditName(user.name || "");
+    setEditRole(user.role);
+    setIsEditMode(false);
+  };
+
+  const handleEditUser = async () => {
+    if (!selectedUser?.id) return;
+
+    try {
+      const response = await fetch(`/api/user/${selectedUser.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editName,
+          role: editRole,
+        }),
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        toast.success("User updated successfully");
+        console.log("User updated successfully");
+        setIsEditMode(false);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update user");
+      }
+    } catch (err) {
+      console.error("Error updating user:", err);
+      toast.error("Failed to update user");
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser?.id) return;
+
+    try {
+      const response = await fetch(`/api/user/${selectedUser.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        setSelectedUser(null);
+        toast.success("User deleted successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete user");
+      }
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      toast.error("Failed to delete user");
+    }
+  };
+
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-25">
       <Card>
         <CardHeader>
           <CardTitle>Admin Controls</CardTitle>
@@ -185,10 +256,10 @@ export default function AdminControls() {
               <div className="flex flex-col gap-4 mt-2">
                 <div className="flex gap-4">
                   <Input
-                    placeholder="Enter user ID"
-                    value={newUserId}
+                    placeholder="Enter user name"
+                    value={newUserName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setNewUserId(e.target.value)
+                      setNewUserName(e.target.value)
                     }
                   />
                   <div className="flex items-center gap-2">
@@ -207,7 +278,7 @@ export default function AdminControls() {
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-[#694A38] hover:bg-[#5a3f30]"
                     } transition-colors`}
-                    disabled={!newUserId}
+                    disabled={!newUserName}
                   >
                     <IconMicrophone size={24} className="theme-text-accent" />
                   </Button>
@@ -222,11 +293,15 @@ export default function AdminControls() {
               <Label>User List</Label>
               <div className="mt-4 space-y-4">
                 {users.map((user) => (
-                  <Card key={user.id}>
+                  <Card
+                    key={user.id}
+                    className="cursor-pointer hover:bg-zinc-900 transition-colors"
+                    onClick={() => handleUserClick(user)}
+                  >
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-medium">{user.userId}</p>
+                          <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-gray-500">
                             Created: {formatDate(user.createdAt)}
                           </p>
@@ -234,6 +309,7 @@ export default function AdminControls() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <Switch
+                              key={`switch-${user.id}`}
                               checked={user.role === "ADMIN"}
                               onCheckedChange={() =>
                                 handleToggleAdmin(user.id, user.role)
@@ -251,6 +327,85 @@ export default function AdminControls() {
           </div>
         </CardContent>
       </Card>
+
+      {/* User Details Dialog */}
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Name</Label>
+              {isEditMode ? (
+                <Input
+                  className="col-span-3"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              ) : (
+                <div className="col-span-3">{selectedUser?.name}</div>
+              )}
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Role</Label>
+              {isEditMode ? (
+                <div className="col-span-3 flex items-center gap-2">
+                  <Switch
+                    checked={editRole === "ADMIN"}
+                    onCheckedChange={(checked) =>
+                      setEditRole(checked ? "ADMIN" : "USER")
+                    }
+                  />
+                  <Label>Admin</Label>
+                </div>
+              ) : (
+                <div className="col-span-3 capitalize">
+                  {selectedUser?.role.toLowerCase()}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Created</Label>
+              <div className="col-span-3">
+                {selectedUser && formatDate(selectedUser.createdAt)}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            {isEditMode ? (
+              <React.Fragment key="edit-mode">
+                <Button
+                  key="cancel"
+                  variant="outline"
+                  onClick={() => setIsEditMode(false)}
+                >
+                  Cancel
+                </Button>
+                <Button key="save" onClick={handleEditUser}>
+                  Save Changes
+                </Button>
+              </React.Fragment>
+            ) : (
+              <React.Fragment key="view-mode">
+                <Button
+                  key="delete"
+                  variant="destructive"
+                  onClick={handleDeleteUser}
+                  className="mr-auto"
+                >
+                  <IconTrash className="mr-2 h-4 w-4" />
+                  Delete User
+                </Button>
+                <Button key="edit" onClick={() => setIsEditMode(true)}>
+                  <IconEdit className="mr-2 h-4 w-4" />
+                  Edit User
+                </Button>
+              </React.Fragment>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

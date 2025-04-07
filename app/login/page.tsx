@@ -32,10 +32,10 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 theme-bg-dark">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight theme-text-accent font-jaro">
+          <h1 className="text-4xl font-bold tracking-tight text-[#bfff00] font-jaro">
             micSQL
           </h1>
-          <p className="mt-2 text-lg text-muted-foreground">
+          <p className="mt-2 text-lg text-[#bfff00]/80">
             {isSignUp ? "Create your account" : "Log in to your account"}
           </p>
         </div>
