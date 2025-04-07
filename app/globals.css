@@ -40,32 +40,32 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #021013;
-  --foreground: #fffecb;
-  --card: #241a13;
-  --card-foreground: #fffecb;
-  --popover: #021013;
-  --popover-foreground: #fffecb;
-  --primary: #694a38;
-  --primary-foreground: #fffecb;
-  --secondary: #a49694;
-  --secondary-foreground: #fffecb;
-  --muted: #0a3038;
-  --muted-foreground: #fffecb;
-  --accent: #fffecb;
-  --accent-foreground: #021013;
-  --destructive: #e54d2e;
-  --border: rgba(255, 254, 203, 0.15);
-  --input: rgba(255, 254, 203, 0.15);
-  --ring: #694a38;
-  --chart-1: #694a38;
-  --chart-2: #a49694;
-  --chart-3: #fffecb;
-  --chart-4: #021013;
-  --chart-5: #694a38;
-  --foreground-rgb: 255, 254, 203;
-  --background-start-rgb: 2, 16, 19;
-  --background-end-rgb: 2, 16, 19;
+  --background: #000000;
+  --foreground: #bfff00;
+  --card: #000000;
+  --card-foreground: #bfff00;
+  --popover: #000000;
+  --popover-foreground: #bfff00;
+  --primary: #00e1ff;
+  --primary-foreground: #000000;
+  --secondary: #00e1ff;
+  --secondary-foreground: #000000;
+  --muted: #1a1a1a;
+  --muted-foreground: #bfff00;
+  --accent: #00e1ff;
+  --accent-foreground: #000000;
+  --destructive: #ff0000;
+  --border: rgba(191, 255, 0, 0.15);
+  --input: rgba(191, 255, 0, 0.15);
+  --ring: #00e1ff;
+  --chart-1: #00e1ff;
+  --chart-2: #bfff00;
+  --chart-3: #000000;
+  --chart-4: #00e1ff;
+  --chart-5: #bfff00;
+  --foreground-rgb: 191, 255, 0;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
   /* Updated font variables for better specificity */
   --font-jaro: "Jaro", sans-serif !important;
   --font-tektur: "Tektur", sans-serif !important;
@@ -85,24 +85,24 @@ body {
 }
 .dark {
   /* Using the same colors as root for consistency */
-  --background: #021013;
-  --foreground: #fffecb;
-  --card: #021013;
-  --card-foreground: #fffecb;
-  --popover: #021013;
-  --popover-foreground: #fffecb;
-  --primary: #694a38;
-  --primary-foreground: #fffecb;
-  --secondary: #a49694;
-  --secondary-foreground: #fffecb;
-  --muted: #0a3038;
-  --muted-foreground: #fffecb;
-  --accent: #fffecb;
-  --accent-foreground: #021013;
-  --destructive: #e54d2e;
-  --border: rgba(255, 254, 203, 0.15);
-  --input: rgba(255, 254, 203, 0.15);
-  --ring: #694a38;
+  --background: #000000;
+  --foreground: #bfff00;
+  --card: #000000;
+  --card-foreground: #bfff00;
+  --popover: #000000;
+  --popover-foreground: #bfff00;
+  --primary: #00e1ff;
+  --primary-foreground: #000000;
+  --secondary: #00e1ff;
+  --secondary-foreground: #000000;
+  --muted: #1a1a1a;
+  --muted-foreground: #bfff00;
+  --accent: #00e1ff;
+  --accent-foreground: #000000;
+  --destructive: #ff0000;
+  --border: rgba(191, 255, 0, 0.15);
+  --input: rgba(191, 255, 0, 0.15);
+  --ring: #00e1ff;
 }
 
 @layer base {
@@ -139,63 +139,81 @@ h6 {
 
 /* Common form styles */
 .form-input {
-  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#694A38];
+  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
 }
 
 .btn-primary {
-  @apply bg-[#694A38] text-[#FFFECB] py-2 px-4 rounded-md hover:bg-[#5a3f30] transition;
+  @apply bg-[#00e1ff] text-[#000000] py-2 px-4 rounded-md hover:bg-[#00c7e6] transition;
 }
 
 .btn-secondary {
-  @apply bg-[#A49694] text-[#FFFECB] py-2 px-4 rounded-md hover:bg-[#958784] transition;
+  @apply bg-[#bfff00] text-[#000000] py-2 px-4 rounded-md hover:bg-[#a6d900] transition;
 }
 
 /* Simplified theme classes with consistent colors */
 .theme-bg-primary {
-  background-color: #694a38;
-  color: #fffecb;
+  background-color: #00e1ff;
+  color: #000000;
 }
 
 .theme-bg-secondary {
-  background-color: #a49694;
-  color: #fffecb;
+  background-color: #bfff00;
+  color: #000000;
 }
 
 .theme-bg-accent {
-  background-color: #fffecb;
-  color: #021013;
+  background-color: #00e1ff;
+  color: #000000;
 }
 
 .theme-bg-dark {
-  background-color: #021013;
-  color: #fffecb;
+  background-color: #000000;
+  color: #bfff00;
 }
 
 .theme-border {
-  border-color: #694a38;
+  border-color: #00e1ff;
 }
 
 .theme-text-primary {
-  color: #694a38;
+  color: #00e1ff;
 }
 
 .theme-text-secondary {
-  color: #a49694;
+  color: #bfff00;
 }
 
 .theme-text-accent {
-  color: #fffecb;
+  color: #00e1ff;
 }
 
 .theme-text-dark {
-  color: #021013;
+  color: #000000;
 }
 
 /* Hover effects for interactive elements */
 .hover-primary:hover {
-  @apply bg-[#5a3f30] text-[#FFFECB];
+  @apply bg-[#00c7e6] text-[#000000];
 }
 
 .hover-secondary:hover {
-  @apply bg-[#958784] text-[#FFFECB];
+  @apply bg-[#a6d900] text-[#000000];
+}
+
+@layer base {
+  :root {
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 }
