@@ -6,7 +6,7 @@ import { AreaChart } from "@/components/AreaChart";
 import { BarChartInteractive } from "@/components/BarChartInteractive";
 import { Graph } from "@/components/BarGraph";
 import { BarGraph2Cat } from "@/components/BarGraph2Cat";
-import { Pie } from "@/components/Pie";
+import { Pie } from "@/components/PieChart";
 import { StackedGraph } from "@/components/StackedGraph";
 
 interface RelatedQuery {

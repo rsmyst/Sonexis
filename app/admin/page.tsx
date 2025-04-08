@@ -70,7 +70,10 @@ export default function AdminControls() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+        audioBitsPerSecond: 128000,
+      });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -82,7 +85,7 @@ export default function AdminControls() {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
+          type: "audio/webm;codecs=opus",
         });
         await processVoiceEnrollment(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
@@ -112,10 +115,10 @@ export default function AdminControls() {
       }
 
       const formData = new FormData();
-      formData.append("userId", selectedUser.id);
-      formData.append("audioData", audioBlob);
+      formData.append("user_id", selectedUser.id);
       formData.append(
-        "audioPath",
+        "file",
+        audioBlob,
         `voice_enrollment_${selectedUser.id}_${Date.now()}.wav`
       );
 
@@ -125,8 +128,17 @@ export default function AdminControls() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setRecordingStatus("Voice enrollment successful");
         toast.success("Voice enrollment completed");
+
+        // Create download link for the WAV file
+        const downloadLink = document.createElement("a");
+        downloadLink.href = data.downloadUrl;
+        downloadLink.download = `voice_enrollment_${
+          selectedUser.id
+        }_${Date.now()}.wav`;
+        downloadLink.click();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Voice enrollment failed");

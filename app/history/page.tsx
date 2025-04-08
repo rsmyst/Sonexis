@@ -6,23 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Graph } from "@/components/BarGraph";
-import { BarChartInteractive } from "@/components/BarChartInteractive";
-import { BarGraph2Cat } from "@/components/BarGraph2Cat";
-import { Pie } from "@/components/Pie";
-import { AreaChart } from "@/components/AreaChart";
-import { StackedGraph } from "@/components/StackedGraph";
+import { Chart } from "@/components/Chart";
 
 interface QueryResult {
   columns: string[];
   rows: Record<string, string | number>[];
-  chartType?:
-    | "bar"
-    | "pie"
-    | "area"
-    | "stacked"
-    | "bar-interactive"
-    | "bar-2cat";
+  chartType?: "bar" | "pie" | "donut" | "line" | "area";
   chartConfig?: {
     xAxisKey?: string;
     yAxisKey?: string;
@@ -49,7 +38,7 @@ interface QueryHistory {
     relatedQueries: {
       description: string;
       sql: string;
-      returned_data: any;
+      returned_data: Record<string, unknown>;
     }[];
     suggestedVisualization: {
       chartType: string;
@@ -102,80 +91,38 @@ export default function QueryHistoryPage() {
     if (!query.results?.chartType || !query.results?.chartConfig) return null;
 
     const { chartType, chartConfig, rows } = query.results;
-    const {
-      xAxisKey,
-      yAxisKey,
-      yAxisKeys,
-      valueKey,
-      nameKey,
-      dateFormat,
-      title,
-      description,
-    } = chartConfig;
+    const { xAxisKey, yAxisKey, yAxisKeys, dateFormat, title, description } =
+      chartConfig;
 
-    switch (chartType) {
-      case "bar":
-        return (
-          <Graph
-            data={rows}
-            title={title || "Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-          />
-        );
-      case "bar-interactive":
-        return (
-          <BarChartInteractive
-            data={rows}
-            title={title || "Interactive Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKeys={yAxisKeys || []}
-            dateFormat={dateFormat}
-          />
-        );
-      case "bar-2cat":
-        return (
-          <BarGraph2Cat
-            data={rows}
-            title={title || "2 Category Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-          />
-        );
-      case "pie":
-        return (
-          <Pie
-            data={rows}
-            title={title || "Pie Chart"}
-            description={description || ""}
-            valueKey={valueKey || ""}
-            nameKey={nameKey || ""}
-          />
-        );
-      case "area":
-        return (
-          <AreaChart
-            data={rows}
-            title={title || "Area Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKey={yAxisKey || ""}
-          />
-        );
-      case "stacked":
-        return (
-          <StackedGraph
-            data={rows}
-            title={title || "Stacked Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKeys={yAxisKeys || []}
-          />
-        );
-      default:
-        return null;
-    }
+    return (
+      <Chart
+        data={rows}
+        xAxis={{
+          key: xAxisKey || "",
+          label: "X-Axis",
+          formatter: (value) => {
+            if (dateFormat) {
+              return new Date(value as string).toLocaleDateString();
+            }
+            return String(value);
+          },
+        }}
+        yAxis={{
+          key: yAxisKey || "",
+          label: "Y-Axis",
+          formatter: (value) => {
+            if (typeof value === "number") {
+              return value.toLocaleString();
+            }
+            return String(value);
+          },
+        }}
+        title={title || "Chart"}
+        description={description || ""}
+        chartType={chartType}
+        yAxisKeys={yAxisKeys}
+      />
+    );
   };
 
   return (

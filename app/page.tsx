@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { IconMicrophoneFilled } from "@tabler/icons-react";
+import Link from "next/link";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -55,7 +56,7 @@ export default function Home() {
         reader.onloadend = () => {
           // Get the base64 string without the data URL prefix
           const base64 = reader.result as string;
-          const base64Data = base64.split(',')[1];
+          const base64Data = base64.split(",")[1];
           resolve(base64Data);
         };
         reader.readAsDataURL(audioBlob);
@@ -68,7 +69,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           audioFile: base64Audio,
-          requestVoiceAuth: true
+          requestVoiceAuth: true,
         }),
       });
 
@@ -169,6 +170,12 @@ export default function Home() {
             className="w-full px-4 py-2 bg-transparent border-b-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:border-[#ff00ff] transition-colors duration-300"
           />
         </form>
+
+        <Link href="/graphs" className="mt-8">
+          <button className="px-6 py-3 bg-[#00e1ff] text-white rounded-lg hover:bg-[#ff00ff] transition-colors duration-300">
+            View Graphs
+          </button>
+        </Link>
       </div>
     </div>
   );

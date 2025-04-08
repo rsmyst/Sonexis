@@ -2,7 +2,6 @@ import { PrismaClient } from "@/generated/main";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
-import axios from "axios";
 import { writeFile } from "fs/promises";
 import path from "path";
 import fs from "fs";
@@ -70,6 +69,27 @@ export const POST = async (req: NextRequest) => {
       }
 
       console.log(`File size: ${fs.statSync(filePath).size} bytes`);
+
+      // Create a voice profile record in the database
+      await prisma.voiceProfile.create({
+        data: {
+          userId: user_id,
+          audioPath: webPath,
+          embeddings: {}, // Placeholder for voice embeddings
+          modelVersion: "1.0",
+          isActive: true,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Audio file saved successfully",
+          audioPath: webPath,
+          downloadUrl: webPath, // Add download URL
+        },
+        { status: 201 }
+      );
     } catch (error) {
       console.error("Error saving audio file:", error);
       return NextResponse.json(
@@ -77,56 +97,11 @@ export const POST = async (req: NextRequest) => {
         { status: 500 }
       );
     }
-
-    // Enroll with the speaker diarization model
-    try {
-      console.log(`Sending enrollment request to voice service`);
-      
-      // Create form data to send the file
-      const voiceFormData = new FormData();
-      voiceFormData.append('user_id', user.userId.toString());
-      voiceFormData.append('file', new Blob([await file.arrayBuffer()], { type: 'audio/wav' }), fileName);
-
-      const response = await axios.post(
-        `${process.env.VOICE_AUTH_API_URL || 'http://localhost:8000'}/enroll`,
-        voiceFormData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-      console.log("Voice service response:", response.data);
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Voice profile enrolled successfully",
-          audioPath: webPath,
-        },
-        { status: 201 }
-      );
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        console.error("Voice service enrollment error:", error.response.data);
-        return NextResponse.json(
-          {
-            error: "Failed to enroll voice profile",
-            details: error.response.data,
-          },
-          { status: error.response.status }
-        );
-      }
-      console.error("Error in enroll request:", error);
-      throw error;
-    }
   } catch (err) {
     console.error("Error in voice profile enrollment:", err);
     return NextResponse.json(
-      { error: "error enrolling voice profile" },
+      { error: "error saving audio file" },
       { status: 500 }
     );
   }
 };
-
-

@@ -180,7 +180,8 @@ export default function AccountSettings() {
       formData.append("user_id", session.user.id);
       formData.append("file", audioBlob);
       formData.append(
-        "audioPath",
+        "file",
+        audioBlob,
         `voice_enrollment_${session.user.id}_${Date.now()}.wav`
       );
 
@@ -190,8 +191,17 @@ export default function AccountSettings() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setRecordingStatus("Voice enrollment successful");
         toast.success("Voice profile enrolled successfully");
+
+        // Create download link for the WAV file
+        const downloadLink = document.createElement("a");
+        downloadLink.href = data.downloadUrl;
+        downloadLink.download = `voice_enrollment_${
+          session.user.id
+        }_${Date.now()}.wav`;
+        downloadLink.click();
       } else {
         let errorMessage = "Voice enrollment failed";
         try {
@@ -199,7 +209,6 @@ export default function AccountSettings() {
           errorMessage = errorData.error || errorMessage;
         } catch (jsonError) {
           console.error("Failed to parse error response as JSON:", jsonError);
-          // If response is not JSON, try to get text
           const text = await response.text();
           errorMessage = text || errorMessage;
         }
