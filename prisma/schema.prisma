@@ -18,6 +18,7 @@ model User {
   id            String         @id @default(cuid())
   userId        Int            @unique @default(autoincrement())
   name          String
+  email         String      @unique
   password      String        // Hashed password
   profilePicture String?      // Base64 encoded profile picture
   createdAt     DateTime       @default(now())

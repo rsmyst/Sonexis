@@ -48,23 +48,6 @@ export default function Graphs() {
     {
       query: `
         SELECT 
-          EXTRACT(YEAR FROM hire_date) AS hire_year,
-          COUNT(*) as hires,
-          ROUND(AVG(salary), 2) as avg_salary
-        FROM employees
-        GROUP BY hire_year
-        ORDER BY hire_year ASC
-      `,
-      xAxis: "hire_year",
-      yAxis: "hires",
-      stackKey: "avg_salary",
-      title: "Employee Hiring Trend by Year",
-      description: "Number of hires and average salary trends over the years",
-      chartType: "line",
-    },
-    {
-      query: `
-        SELECT 
           category,
           COUNT(*) as product_count,
           SUM(stock_quantity) as total_stock,
@@ -112,14 +95,37 @@ export default function Graphs() {
       description: "Employee count distribution across departments",
       chartType: "donut",
     },
+    {
+      query: `
+        SELECT 
+          EXTRACT(YEAR FROM hire_date) AS hire_year,
+          COUNT(*) as hires,
+          ROUND(AVG(salary), 2) as avg_salary
+        FROM employees
+        GROUP BY hire_year
+        ORDER BY hire_year ASC
+      `,
+      xAxis: "hire_year",
+      yAxis: "hires",
+      stackKey: "avg_salary",
+      title: "Employee Hiring Trend by Year",
+      description: "Number of hires and average salary trends over the years",
+      chartType: "line",
+    },
   ];
+
+  // Sort queries based on chart type order
+  const sortedQueries = [...queries].sort((a, b) => {
+    const order = { pie: 0, donut: 1, line: 2, bar: 3, area: 4 };
+    return order[a.chartType || "bar"] - order[b.chartType || "bar"];
+  });
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         const results: { [key: string]: ChartData[] } = {};
 
-        for (const queryConfig of queries) {
+        for (const queryConfig of sortedQueries) {
           const response = await fetch("/api/execute-query", {
             method: "POST",
             headers: {
@@ -151,7 +157,7 @@ export default function Graphs() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-[#bfff00]">Loading...</div>
+        <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -171,26 +177,49 @@ export default function Graphs() {
           Data Visualizations
         </h1>
 
-        <div className="grid grid-cols-1 gap-8">
-          {queries.map((queryConfig) => (
-            <div key={queryConfig.title} className="bg-gray-900 p-6 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {sortedQueries.map((queryConfig) => (
+            <div
+              key={queryConfig.title}
+              className={`${
+                queryConfig.chartType === "bar" ||
+                queryConfig.chartType === "area" ||
+                queryConfig.chartType === "line"
+                  ? "col-span-1 md:col-span-2"
+                  : "col-span-1"
+              } bg-gray-900 p-6 rounded-lg`}
+            >
               <Chart
                 data={chartsData[queryConfig.title]}
                 xAxis={{
                   key: queryConfig.xAxis,
-                  label: "Customer Segment",
+                  label:
+                    queryConfig.xAxis.charAt(0).toUpperCase() +
+                    queryConfig.xAxis.slice(1),
                   formatter: (value) => value.toString(),
                 }}
                 yAxis={{
                   key: queryConfig.yAxis,
-                  label: "Total Revenue",
-                  formatter: (value) => `$${value.toLocaleString()}`,
+                  label: queryConfig.yAxis
+                    .split("_")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" "),
+                  formatter: (value) => {
+                    if (
+                      queryConfig.yAxis.includes("salary") ||
+                      queryConfig.yAxis.includes("profit")
+                    ) {
+                      return `$${value.toLocaleString()}`;
+                    }
+                    return value.toLocaleString();
+                  },
                 }}
                 title={queryConfig.title}
                 description={queryConfig.description}
                 color="#4ade80"
                 chartType={queryConfig.chartType}
                 stackKey={queryConfig.stackKey}
+                margin={{ top: 20, right: 30, left: 55, bottom: 25 }}
               />
             </div>
           ))}

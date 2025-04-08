@@ -76,9 +76,9 @@ export function ChartJsPie({
         callbacks: {
           label: (context) => {
             const label = context.label || "";
-            const value = context.raw as number;
+            const value = Number(context.raw);
             const total = context.dataset.data.reduce(
-              (a: number, b: number) => a + b,
+              (a: number, b: number) => Number(a) + Number(b),
               0
             );
             const percentage = ((value / total) * 100).toFixed(1);
@@ -91,12 +91,12 @@ export function ChartJsPie({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       <div className="text-center mb-4">
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <div className="flex-1 min-h-[300px]">
+      <div className="relative w-full aspect-square">
         <Pie data={chartData} options={options} />
       </div>
     </div>

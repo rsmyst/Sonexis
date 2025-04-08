@@ -227,8 +227,8 @@ export default function AccountSettings() {
 
   if (!settings) {
     return (
-      <div className="min-h-screen flex items-center justify-center theme-bg-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -370,13 +370,13 @@ export default function AccountSettings() {
                   <div className="flex flex-col items-center space-y-4">
                     <Button
                       onClick={isEnrolling ? stopRecording : startRecording}
-                      className={`p-4 rounded-full ${
+                      className={`p-8 rounded-full ${
                         isEnrolling
                           ? "bg-red-500 hover:bg-red-600"
-                          : "bg-[#694A38] hover:bg-[#5a3f30]"
+                          : "bg-[#3C6E71] hover:bg-[#244244]"
                       } transition-colors`}
                     >
-                      <IconMicrophone size={24} className="theme-text-accent" />
+                      <IconMicrophone size={56} className="theme-text-accent" />
                     </Button>
                     {recordingStatus && (
                       <p className="text-sm text-zinc-400">{recordingStatus}</p>

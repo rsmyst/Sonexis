@@ -54,7 +54,8 @@ async function main() {
       password: hashedPassword,
     },
     create: {
-      name: "Admin User",
+      name: "Rahul Admin",
+      email: "rahul.skyscc@gmail.com",
       password: hashedPassword,
       role: "ADMIN",
       settings: {
@@ -70,7 +71,8 @@ async function main() {
   // Create test users
   const testUsers = [
     {
-      name: "Rahul Sharma",
+      name: "Lebron James",
+      email: "rahul.sharma@micsql.com",
       password: "test123",
       role: "USER",
       settings: {
@@ -81,6 +83,7 @@ async function main() {
     },
     {
       name: "Priya Patel",
+      email: "priya.patel@micsql.com",
       password: "test123",
       role: "USER",
       settings: {
@@ -91,6 +94,7 @@ async function main() {
     },
     {
       name: "Amit Singh",
+      email: "amit.singh@micsql.com",
       password: "test123",
       role: "USER",
       settings: {
@@ -101,6 +105,7 @@ async function main() {
     },
     {
       name: "Neha Gupta",
+      email: "neha.gupta@micsql.com",
       password: "test123",
       role: "USER",
       settings: {
@@ -111,6 +116,7 @@ async function main() {
     },
     {
       name: "Vikram Reddy",
+      email: "vikram.reddy@micsql.com",
       password: "test123",
       role: "USER",
       settings: {
@@ -126,6 +132,7 @@ async function main() {
     const createdUser = await prisma.user.create({
       data: {
         name: user.name,
+        email: user.email,
         password: user.password,
         role: user.role,
         settings: {

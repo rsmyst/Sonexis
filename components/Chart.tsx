@@ -38,6 +38,12 @@ interface ChartProps {
   chartType?: "bar" | "pie" | "donut" | "line" | "area";
   stackKey?: string;
   yAxisKeys?: string[];
+  margin?: {
+    top?: number;
+    right?: number;
+    left?: number;
+    bottom?: number;
+  };
 }
 
 const COLORS = [
@@ -59,15 +65,13 @@ export function Chart({
   chartType = "bar",
   stackKey,
   yAxisKeys,
+  margin = { top: 20, right: 30, left: 60, bottom: 5 },
 }: ChartProps) {
   const renderChart = () => {
     switch (chartType) {
       case "bar":
         return (
-          <BarChart
-            data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
+          <BarChart data={data} margin={margin}>
             <CartesianGrid vertical={false} stroke="#374151" />
             <XAxis
               dataKey={xAxis.key}
@@ -83,11 +87,19 @@ export function Chart({
                 value: yAxis.label,
                 angle: -90,
                 position: "left",
+                style: {
+                  textAnchor: "middle",
+                  fill: "#9CA3AF",
+                  fontSize: "16px",
+                },
+                offset: 40,
+                dy: 0,
               }}
               tickLine={false}
               axisLine={false}
               tick={{ fill: "#9CA3AF" }}
               tickFormatter={yAxis.formatter}
+              width={100}
             />
             <Tooltip
               contentStyle={{
@@ -139,10 +151,7 @@ export function Chart({
 
       case "line":
         return (
-          <LineChart
-            data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
+          <LineChart data={data} margin={margin}>
             <CartesianGrid vertical={false} stroke="#374151" />
             <XAxis
               dataKey={xAxis.key}
@@ -158,11 +167,19 @@ export function Chart({
                 value: yAxis.label,
                 angle: -90,
                 position: "left",
+                style: {
+                  textAnchor: "middle",
+                  fill: "#9CA3AF",
+                  fontSize: "16px",
+                },
+                offset: 40,
+                dy: 0,
               }}
               tickLine={false}
               axisLine={false}
               tick={{ fill: "#9CA3AF" }}
               tickFormatter={yAxis.formatter}
+              width={100}
             />
             <Tooltip
               contentStyle={{
@@ -203,10 +220,7 @@ export function Chart({
 
       case "area":
         return (
-          <AreaChart
-            data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
+          <AreaChart data={data} margin={margin}>
             <CartesianGrid vertical={false} stroke="#374151" />
             <XAxis
               dataKey={xAxis.key}
@@ -222,11 +236,19 @@ export function Chart({
                 value: yAxis.label,
                 angle: -90,
                 position: "left",
+                style: {
+                  textAnchor: "middle",
+                  fill: "#9CA3AF",
+                  fontSize: "16px",
+                },
+                offset: 40,
+                dy: 0,
               }}
               tickLine={false}
               axisLine={false}
               tick={{ fill: "#9CA3AF" }}
               tickFormatter={yAxis.formatter}
+              width={100}
             />
             <Tooltip
               contentStyle={{
@@ -267,7 +289,7 @@ export function Chart({
 
       case "pie":
         return (
-          <Card>
+          <Card className="w-full">
             <CardContent className="p-6">
               <ChartJsPie
                 data={data}
@@ -275,7 +297,7 @@ export function Chart({
                 description={description}
                 valueKey={yAxis.key}
                 nameKey={xAxis.key}
-                type="pie"
+                type={chartType}
               />
             </CardContent>
           </Card>
@@ -283,7 +305,7 @@ export function Chart({
 
       case "donut":
         return (
-          <Card>
+          <Card className="w-full">
             <CardContent className="p-6">
               <ChartJsPie
                 data={data}
@@ -291,7 +313,7 @@ export function Chart({
                 description={description}
                 valueKey={yAxis.key}
                 nameKey={xAxis.key}
-                type="donut"
+                type={chartType}
               />
             </CardContent>
           </Card>
@@ -307,7 +329,7 @@ export function Chart({
   }
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardContent>
         <div className="w-full h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
