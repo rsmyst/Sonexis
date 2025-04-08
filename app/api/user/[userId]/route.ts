@@ -62,14 +62,14 @@ export const PATCH = async (
       );
     }
 
-    const { name, email, password, role, voiceEnabled, autoSuggestEnabled } =
+    const { name, password, role, voiceEnabled, autoSuggestEnabled } =
       await req.json();
     const { userId } = params;
 
     console.log("PATCH request received:", {
       userId,
       name,
-      email,
+      // email,
       role,
       voiceEnabled,
       autoSuggestEnabled,
@@ -96,7 +96,7 @@ export const PATCH = async (
     } = {};
 
     if (name !== undefined) updateData.name = name;
-    if (email !== undefined) updateData.email = email;
+    // if (email !== undefined) updateData.email = email;
     if (password !== undefined) updateData.password = password;
     if (role !== undefined) {
       if (role !== "USER" && role !== "ADMIN") {

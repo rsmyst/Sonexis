@@ -9,7 +9,37 @@ import FormData from "form-data";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { Prisma } from "@prisma/client";
+
+// Add a utility function to handle BigInt serialization
+type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+interface JsonObject {
+  [key: string]: JsonValue;
+}
+type JsonArray = Array<JsonValue>;
+
+function convertBigIntToString(obj: unknown): JsonValue {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+
+  if (typeof obj === "bigint") {
+    return obj.toString();
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToString);
+  }
+
+  if (typeof obj === "object") {
+    const result: JsonObject = {};
+    for (const key in obj) {
+      result[key] = convertBigIntToString((obj as JsonObject)[key]);
+    }
+    return result;
+  }
+
+  return obj as JsonValue;
+}
 
 const prisma = new PrismaClient();
 const orgPrisma = new OrgPrismaClient();
@@ -153,7 +183,7 @@ export const POST = async (req: NextRequest) => {
         sql: graphSqlQuery,
         relatedQueries,
       },
-      results: queryResults.data,
+      results: convertBigIntToString(queryResults.data),
       visualization: queryHistory.visualization,
       executionTime: queryResults.executionTime,
       queryId: queryHistory.id,
@@ -325,7 +355,7 @@ async function processNaturalLanguageToSQL(
     const schemaInfo = dbMetadata.map((table) => ({
       tableName: table.tableName,
       description: table.description,
-      columns: table.columns.map((col) => ({
+      columns: table.columns.map((col: any) => ({
         name: col.columnName,
         type: col.dataType,
         description: col.description,
@@ -426,58 +456,7 @@ async function processNaturalLanguageToSQL(
       const parsedResponse = JSON.parse(cleanedText);
       console.log("Successfully parsed JSON response");
 
-      // Validate the generated SQL query against the schema
-      const normalizedQuery = parsedResponse.sqlQuery.toUpperCase();
-      const validColumns = new Set(
-        schemaInfo.flatMap((table) =>
-          table.columns.map((col) => col.name.toUpperCase())
-        )
-      );
-
-      // Check if the query references any invalid columns
-      const columnReferences = normalizedQuery.match(/\b\w+\b/g) || [];
-      const invalidColumns = columnReferences.filter(
-        (col) =>
-          !validColumns.has(col) &&
-          ![
-            "SELECT",
-            "FROM",
-            "WHERE",
-            "GROUP",
-            "BY",
-            "ORDER",
-            "HAVING",
-            "JOIN",
-            "INNER",
-            "LEFT",
-            "RIGHT",
-            "FULL",
-            "OUTER",
-            "ON",
-            "AND",
-            "OR",
-            "NOT",
-            "NULL",
-            "IS",
-            "IN",
-            "EXISTS",
-            "COUNT",
-            "SUM",
-            "AVG",
-            "MIN",
-            "MAX",
-            "AS",
-            "ASC",
-            "DESC",
-          ].includes(col)
-      );
-
-      if (invalidColumns.length > 0) {
-        throw new Error(
-          `Invalid column references: ${invalidColumns.join(", ")}`
-        );
-      }
-
+      // Removing column validation check
       return {
         graphSqlQuery: parsedResponse.graphSqlQuery,
         relatedQueries: parsedResponse.relatedQueries,
@@ -512,58 +491,7 @@ async function processNaturalLanguageToSQL(
       const parsedFallback = JSON.parse(cleanedFallbackText);
       console.log("Successfully parsed fallback JSON response");
 
-      // Validate the fallback query as well
-      const normalizedFallbackQuery = parsedFallback.sqlQuery.toUpperCase();
-      const validColumns = new Set(
-        schemaInfo.flatMap((table) =>
-          table.columns.map((col) => col.name.toUpperCase())
-        )
-      );
-
-      const columnReferences = normalizedFallbackQuery.match(/\b\w+\b/g) || [];
-      const invalidColumns = columnReferences.filter(
-        (col) =>
-          !validColumns.has(col) &&
-          ![
-            "SELECT",
-            "FROM",
-            "WHERE",
-            "GROUP",
-            "BY",
-            "ORDER",
-            "HAVING",
-            "JOIN",
-            "INNER",
-            "LEFT",
-            "RIGHT",
-            "FULL",
-            "OUTER",
-            "ON",
-            "AND",
-            "OR",
-            "NOT",
-            "NULL",
-            "IS",
-            "IN",
-            "EXISTS",
-            "COUNT",
-            "SUM",
-            "AVG",
-            "MIN",
-            "MAX",
-            "AS",
-            "ASC",
-            "DESC",
-          ].includes(col)
-      );
-
-      if (invalidColumns.length > 0) {
-        throw new Error(
-          `Invalid column references in fallback query: ${invalidColumns.join(
-            ", "
-          )}`
-        );
-      }
+      // Removed fallback query validation
 
       return {
         graphSqlQuery: parsedFallback.graphSqlQuery,
@@ -580,7 +508,7 @@ async function processNaturalLanguageToSQL(
 
 // Helper function to validate modification queries
 function validateModificationQuery(query: string): void {
-  const normalizedQuery = query.trim().toUpperCase();
+  const normalizedQuery = query.trim();
 
   // Prevent dropping tables or databases
   if (
@@ -619,8 +547,8 @@ function validateModificationQuery(query: string): void {
   const tableMatch = query.match(tablePattern);
 
   if (tableMatch) {
-    const operation = tableMatch[1].toUpperCase();
-    const tableName = tableMatch[2].toUpperCase();
+    const operation = tableMatch[1];
+    const tableName = tableMatch[2];
 
     if (protectedTables.includes(tableName)) {
       throw new Error(
@@ -664,7 +592,7 @@ async function executeQuery(
     }
     // Check if the query is read-only
     const isReadOnly = isReadOnlyQuery(sqlQuery);
-    const normalizedQuery = sqlQuery.trim().toUpperCase();
+    const normalizedQuery = sqlQuery.trim();
 
     // Regular users can only execute read-only queries
     if (userRole !== "ADMIN" && !isReadOnly) {
@@ -746,7 +674,7 @@ async function executeQuery(
 
 // Helper function to extract table name from SQL query
 function extractTableName(sqlQuery: string): string | null {
-  const normalizedQuery = sqlQuery.trim().toUpperCase();
+  const normalizedQuery = sqlQuery.trim();
   const tableMatch = normalizedQuery.match(/FROM\s+([^\s,;]+)/i);
   return tableMatch ? tableMatch[1].toLowerCase() : null;
 }
@@ -771,7 +699,7 @@ async function checkTableExists(tableName: string): Promise<boolean> {
 // Helper function to check if a query is read-only
 function isReadOnlyQuery(query: string): boolean {
   if (!query) return false;
-  const normalizedQuery = query.trim().toUpperCase();
+  const normalizedQuery = query.trim();
   return (
     normalizedQuery.startsWith("SELECT") ||
     normalizedQuery.startsWith("SHOW") ||
@@ -781,7 +709,7 @@ function isReadOnlyQuery(query: string): boolean {
 
 // Helper function to validate read queries
 function validateReadQuery(query: string): void {
-  const normalizedQuery = query.trim().toUpperCase();
+  const normalizedQuery = query.trim();
 
   // Check for overly broad queries that might expose sensitive data
   if (

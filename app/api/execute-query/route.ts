@@ -1,7 +1,7 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient as OrgPrismaClient, Prisma } from "@/generated/org";
 import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+const prisma = new OrgPrismaClient();
 
 interface QueryRequest {
   query: string;

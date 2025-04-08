@@ -26,19 +26,11 @@ async function seedDatabase() {
     // await createTables(client);
 
     // Seed tables with data
-<<<<<<< HEAD
     await seedEmployees(client);
     await seedInventory(client);
     await seedCustomers(client);
     await seedOrders(client);
     await seedSales(client);
-=======
-    // await seedEmployees(client);
-    // await seedInventory(client);
-    // await seedCustomers(client);
-    // await seedOrders(client);
-    // await seedSales(client);
->>>>>>> 9e6d512 (Updated UI/UX + seed script for email access. Added better graphs with a working page)
     await seedEmployeeBenefits(client);
     console.log("Database seeding completed successfully");
   } catch (error) {
@@ -54,12 +46,12 @@ async function seedDatabase() {
 
 async function createTables(client) {
   // Drop tables if they exist
-  // await client.query("DROP TABLE IF EXISTS employee_benefits CASCADE");
-  // await client.query("DROP TABLE IF EXISTS sales CASCADE");
-  // await client.query("DROP TABLE IF EXISTS orders CASCADE");
-  // await client.query("DROP TABLE IF EXISTS customers CASCADE");
-  // await client.query("DROP TABLE IF EXISTS inventory CASCADE");
-  // await client.query("DROP TABLE IF EXISTS employees CASCADE");
+  await client.query("DROP TABLE IF EXISTS employee_benefits CASCADE");
+  await client.query("DROP TABLE IF EXISTS sales CASCADE");
+  await client.query("DROP TABLE IF EXISTS orders CASCADE");
+  await client.query("DROP TABLE IF EXISTS customers CASCADE");
+  await client.query("DROP TABLE IF EXISTS inventory CASCADE");
+  await client.query("DROP TABLE IF EXISTS employees CASCADE");
 
   // Create employees table
   await client.query(`

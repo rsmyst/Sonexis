@@ -17,7 +17,6 @@ async function main() {
   await prisma.columnMetadata.deleteMany();
   await prisma.databaseMetadata.deleteMany();
   await prisma.userSettings.deleteMany();
-  await prisma.voiceProfile.deleteMany();
   await prisma.user.deleteMany();
 
   console.log("Database cleanup completed. Starting seeding process...");
@@ -53,7 +52,6 @@ async function main() {
   await prisma.user.create({
     data: {
       name: "Rahul Sharma",
-      email: "admin@example.com",
       password: "admin123",
       role: "ADMIN",
       profilePicture: adminPfpBase64,
@@ -62,10 +60,10 @@ async function main() {
 
   // Create regular users with profile pictures
   const regularUsers = [
-    { name: "Priya Patel", email: "user2@example.com", pfp: "user2.png" },
-    { name: "Amit Singh", email: "user3@example.com", pfp: "user3.png" },
-    { name: "Neha Gupta", email: "user4@example.com", pfp: "user4.png" },
-    { name: "Vikram Reddy", email: "user5@example.com", pfp: "user5.png" },
+    { name: "Priya Patel", pfp: "user2.png" },
+    { name: "Amit Singh", pfp: "user3.png" },
+    { name: "Neha Gupta", pfp: "user4.png" },
+    { name: "Vikram Reddy", pfp: "user5.png" },
   ];
 
   for (const user of regularUsers) {
@@ -75,7 +73,6 @@ async function main() {
     await prisma.user.create({
       data: {
         name: user.name,
-        email: user.email,
         password: "password123",
         role: "USER",
         profilePicture: pfpBase64,

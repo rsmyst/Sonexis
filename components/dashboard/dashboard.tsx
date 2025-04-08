@@ -41,7 +41,7 @@ export default function Dashboard() {
           </h1>
           <div className="flex items-center space-x-4">
             <span className="text-accent">
-              Welcome, {session?.user?.name || session?.user?.email}
+              Welcome, {session?.user?.name}
             </span>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}

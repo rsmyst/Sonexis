@@ -19,7 +19,7 @@ interface UserSettings {
     voiceEnabled: boolean;
     autoSuggestEnabled: boolean;
   };
-  email?: string;
+  // email?: string;
 }
 
 export default function AccountSettings() {
@@ -307,14 +307,14 @@ export default function AccountSettings() {
                 </p>
               </div>
 
-              <div className="space-y-1.5">
+              {/* <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">
                   Email
                 </Label>
                 <p className="text-lg font-medium text-zinc-100">
                   {settings?.email || "Not set"}
                 </p>
-              </div>
+              </div> */}
 
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">

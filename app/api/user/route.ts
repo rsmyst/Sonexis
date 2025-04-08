@@ -24,7 +24,7 @@ export const GET = async () => {
         password: false,
         userId: true,
         name: true,
-        email: true,
+        // email: true,
         role: true,
         createdAt: true,
         profilePicture: true,

@@ -26,7 +26,7 @@ import React from "react";
 interface User {
   id: string;
   name: string;
-  email: string;
+  // email: string;
   role: "USER" | "ADMIN";
   createdAt: string;
   profilePicture?: string;
@@ -37,7 +37,7 @@ export default function AdminControls() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newUserName, setNewUserName] = useState("");
-  const [newUserEmail, setNewUserEmail] = useState("");
+  // const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -46,7 +46,7 @@ export default function AdminControls() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editName, setEditName] = useState("");
-  const [editEmail, setEditEmail] = useState("");
+  // const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState<"USER" | "ADMIN">("USER");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -176,7 +176,7 @@ export default function AdminControls() {
         },
         body: JSON.stringify({
           name: newUserName,
-          email: newUserEmail,
+          // email: newUserEmail,
           password: newUserPassword,
           role: isAdmin ? "ADMIN" : "USER",
         }),
@@ -185,7 +185,7 @@ export default function AdminControls() {
       if (response.ok) {
         await fetchUsers();
         setNewUserName("");
-        setNewUserEmail("");
+        // setNewUserEmail("");
         setNewUserPassword("");
         setIsAdmin(false);
         toast.success("User added successfully");
@@ -231,7 +231,7 @@ export default function AdminControls() {
   const handleUserClick = (user: User) => {
     setSelectedUser(user);
     setEditName(user.name || "");
-    setEditEmail(user.email || "");
+    // setEditEmail(user.email || "");
     setEditRole(user.role);
     setIsEditMode(false);
   };
@@ -247,7 +247,7 @@ export default function AdminControls() {
         },
         body: JSON.stringify({
           name: editName,
-          email: editEmail,
+          // email: editEmail,
           role: editRole,
         }),
       });
@@ -446,9 +446,9 @@ export default function AdminControls() {
                               <p className="font-medium text-zinc-100">
                                 {user.name}
                               </p>
-                              <p className="text-sm text-zinc-400">
+                              {/* <p className="text-sm text-zinc-400">
                                 {user.email}
-                              </p>
+                              </p> */}
                               <p className="text-sm text-zinc-400">
                                 Created: {formatDate(user.createdAt)}
                               </p>
