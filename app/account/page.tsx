@@ -57,7 +57,7 @@ export default function AccountSettings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          [field]: !settings?.settings?.settings?.[field],
+          [field]: !settings?.settings?.[field],
         }),
       });
 
@@ -177,8 +177,8 @@ export default function AccountSettings() {
       }
 
       const formData = new FormData();
-      formData.append("userId", session.user.id);
-      formData.append("audioData", audioBlob);
+      formData.append("user_id", session.user.id);
+      formData.append("file", audioBlob);
       formData.append(
         "audioPath",
         `voice_enrollment_${session.user.id}_${Date.now()}.wav`
