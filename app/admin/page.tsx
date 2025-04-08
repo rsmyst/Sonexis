@@ -26,6 +26,7 @@ import React from "react";
 interface User {
   id: string;
   name: string;
+  email: string;
   role: "USER" | "ADMIN";
   createdAt: string;
   profilePicture?: string;
@@ -34,7 +35,9 @@ interface User {
 export default function AdminControls() {
   const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -43,6 +46,7 @@ export default function AdminControls() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState<"USER" | "ADMIN">("USER");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -55,6 +59,7 @@ export default function AdminControls() {
   }, [session]);
 
   const fetchUsers = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/user");
       if (response.ok) {
@@ -64,6 +69,8 @@ export default function AdminControls() {
     } catch (err) {
       console.error("Error fetching users:", err);
       toast.error("Failed to fetch users");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -155,8 +162,8 @@ export default function AdminControls() {
   };
 
   const handleAddUser = async () => {
-    if (!newUserName || !newUserPassword) {
-      toast.error("Please enter both user name and password");
+    if (!newUserName || !newUserPassword || !newUserEmail) {
+      toast.error("Please enter user name, email and password");
       return;
     }
 
@@ -169,6 +176,7 @@ export default function AdminControls() {
         },
         body: JSON.stringify({
           name: newUserName,
+          email: newUserEmail,
           password: newUserPassword,
           role: isAdmin ? "ADMIN" : "USER",
         }),
@@ -177,6 +185,7 @@ export default function AdminControls() {
       if (response.ok) {
         await fetchUsers();
         setNewUserName("");
+        setNewUserEmail("");
         setNewUserPassword("");
         setIsAdmin(false);
         toast.success("User added successfully");
@@ -222,6 +231,7 @@ export default function AdminControls() {
   const handleUserClick = (user: User) => {
     setSelectedUser(user);
     setEditName(user.name || "");
+    setEditEmail(user.email || "");
     setEditRole(user.role);
     setIsEditMode(false);
   };
@@ -237,6 +247,7 @@ export default function AdminControls() {
         },
         body: JSON.stringify({
           name: editName,
+          email: editEmail,
           role: editRole,
         }),
       });
@@ -350,6 +361,13 @@ export default function AdminControls() {
                       }
                     />
                     <Input
+                      placeholder="Enter email"
+                      value={newUserEmail}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setNewUserEmail(e.target.value)
+                      }
+                    />
+                    <Input
                       type="password"
                       placeholder="Enter password"
                       value={newUserPassword}
@@ -372,62 +390,87 @@ export default function AdminControls() {
             <div>
               <Label>User List</Label>
               <div className="mt-4 space-y-4">
-                {users.map((user) => (
-                  <Card
-                    key={user.id}
-                    className="cursor-pointer hover:bg-zinc-900 transition-colors shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
-                    onClick={(e) => {
-                      // Check if the click was on the switch or its label
-                      const target = e.target as HTMLElement;
-                      if (target.closest(".switch-container")) {
-                        return;
-                      }
-                      handleUserClick(user);
-                    }}
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                          <div className="relative w-10 h-10 overflow-hidden">
-                            {user.profilePicture ? (
-                              <img
-                                src={user.profilePicture}
-                                alt={user.name}
-                                className="w-full h-full object-cover"
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                    <p className="text-zinc-400">No users found</p>
+                    <p className="text-sm text-zinc-500">
+                      Add a new user to get started
+                    </p>
+                  </div>
+                ) : (
+                  users.map((user) => (
+                    <Card
+                      key={user.id}
+                      className="cursor-pointer hover:bg-zinc-900 transition-colors shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
+                      onClick={(e) => {
+                        // Check if the click was on the switch or its label
+                        const target = e.target as HTMLElement;
+                        if (target.closest(".switch-container")) {
+                          return;
+                        }
+                        handleUserClick(user);
+                      }}
+                    >
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-4">
+                            <div className="relative w-10 h-10 overflow-hidden">
+                              {user.profilePicture ? (
+                                <img
+                                  src={user.profilePicture}
+                                  alt={user.name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  onLoad={(e) => {
+                                    const img = e.target as HTMLImageElement;
+                                    img.style.opacity = "1";
+                                  }}
+                                  style={{
+                                    opacity: 0,
+                                    transition: "opacity 0.3s ease-in-out",
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                  <span className="text-lg text-zinc-600">
+                                    {user.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-zinc-100">
+                                {user.name}
+                              </p>
+                              <p className="text-sm text-zinc-400">
+                                {user.email}
+                              </p>
+                              <p className="text-sm text-zinc-400">
+                                Created: {formatDate(user.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 switch-container">
+                              <Switch
+                                key={`switch-${user.id}`}
+                                checked={user.role === "ADMIN"}
+                                onCheckedChange={() =>
+                                  handleToggleAdmin(user.id, user.role)
+                                }
                               />
-                            ) : (
-                              <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                <span className="text-lg text-zinc-600">
-                                  {user.name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-zinc-100">
-                              {user.name}
-                            </p>
-                            <p className="text-sm text-zinc-400">
-                              Created: {formatDate(user.createdAt)}
-                            </p>
+                              <Label>Admin</Label>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2 switch-container">
-                            <Switch
-                              key={`switch-${user.id}`}
-                              checked={user.role === "ADMIN"}
-                              onCheckedChange={() =>
-                                handleToggleAdmin(user.id, user.role)
-                              }
-                            />
-                            <Label>Admin</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -448,6 +491,15 @@ export default function AdminControls() {
                     src={selectedUser.profilePicture}
                     alt="Profile"
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.style.opacity = "1";
+                    }}
+                    style={{
+                      opacity: 0,
+                      transition: "opacity 0.3s ease-in-out",
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
@@ -494,6 +546,18 @@ export default function AdminControls() {
                 />
               ) : (
                 <div className="col-span-3">{selectedUser?.name}</div>
+              )}
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Email</Label>
+              {isEditMode ? (
+                <Input
+                  className="col-span-3"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              ) : (
+                <div className="col-span-3">{selectedUser?.email}</div>
               )}
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

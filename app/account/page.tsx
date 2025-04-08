@@ -19,6 +19,7 @@ interface UserSettings {
     voiceEnabled: boolean;
     autoSuggestEnabled: boolean;
   };
+  email?: string;
 }
 
 export default function AccountSettings() {
@@ -252,6 +253,15 @@ export default function AccountSettings() {
                       src={settings.profilePicture}
                       alt="Profile"
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onLoad={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.style.opacity = "1";
+                      }}
+                      style={{
+                        opacity: 0,
+                        transition: "opacity 0.3s ease-in-out",
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
@@ -297,14 +307,14 @@ export default function AccountSettings() {
                 </p>
               </div>
 
-              {/* <div className="space-y-1.5">
+              <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">
                   Email
                 </Label>
                 <p className="text-lg font-medium text-zinc-100">
-                  {session?.user?.email}
+                  {settings?.email || "Not set"}
                 </p>
-              </div> */}
+              </div>
 
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">
@@ -337,7 +347,7 @@ export default function AccountSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.settings?.voiceEnabled}
+                  checked={settings?.settings?.voiceEnabled}
                   onCheckedChange={() => handleToggle("voiceEnabled")}
                 />
               </div>
@@ -352,7 +362,7 @@ export default function AccountSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.settings?.autoSuggestEnabled}
+                  checked={settings?.settings?.autoSuggestEnabled}
                   onCheckedChange={() => handleToggle("autoSuggestEnabled")}
                 />
               </div>

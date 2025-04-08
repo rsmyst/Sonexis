@@ -57,6 +57,7 @@ export default function QueryHistoryPage() {
   const { data: session } = useSession();
   const [history, setHistory] = useState<QueryHistory[]>([]);
   const [selectedQuery, setSelectedQuery] = useState<QueryHistory | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -66,6 +67,7 @@ export default function QueryHistoryPage() {
 
   const fetchHistory = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch(
         `/api/query-history/user/${session?.user?.id}`
       );
@@ -76,6 +78,8 @@ export default function QueryHistoryPage() {
     } catch (err) {
       console.error("Error fetching history:", err);
       toast.error("Failed to fetch query history");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -132,60 +136,76 @@ export default function QueryHistoryPage() {
           <CardTitle>Query History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {history.map((query) => (
-              <Card key={query.id}>
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
+          {isLoading ? (
+            <div className="min-h-[200px] flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="min-h-[200px] flex items-center justify-center">
+              <p className="text-gray-500 text-lg">
+                No query history to display
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {history.map((query) => (
+                <Card key={query.id}>
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">Natural Language Query:</p>
+                          <p className="text-sm text-gray-500">
+                            {query.userQuery}
+                          </p>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(query.createdAt)}
+                        </div>
+                      </div>
                       <div>
-                        <p className="font-medium">Natural Language Query:</p>
+                        <p className="font-medium">SQL Query:</p>
                         <p className="text-sm text-gray-500">
-                          {query.userQuery}
+                          {query.sqlQuery}
                         </p>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(query.createdAt)}
+                      <div className="flex justify-between items-center">
+                        <div>
+                          {query.executionTime && (
+                            <p className="text-sm text-gray-500">
+                              Execution Time: {query.executionTime}ms
+                            </p>
+                          )}
+                          {!query.successful && (
+                            <p className="text-sm text-red-500">
+                              Error: {query.errorMessage}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleShowResults(query)}
+                          >
+                            Show Results
+                          </Button>
+                          {query.visualizationData && (
+                            <Link
+                              href={`/history/visualization?id=${query.id}`}
+                            >
+                              <Button variant="outline">
+                                View Visualization
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="font-medium">SQL Query:</p>
-                      <p className="text-sm text-gray-500">{query.sqlQuery}</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        {query.executionTime && (
-                          <p className="text-sm text-gray-500">
-                            Execution Time: {query.executionTime}ms
-                          </p>
-                        )}
-                        {!query.successful && (
-                          <p className="text-sm text-red-500">
-                            Error: {query.errorMessage}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handleShowResults(query)}
-                        >
-                          Show Results
-                        </Button>
-                        {query.visualizationData && (
-                          <Link href={`/history/visualization?id=${query.id}`}>
-                            <Button variant="outline">
-                              View Visualization
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

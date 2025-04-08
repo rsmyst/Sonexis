@@ -23,6 +23,7 @@ export const GET = async () => {
         password: false,
         userId: true,
         name: true,
+        email: true,
         role: true,
         createdAt: true,
         profilePicture: true,
@@ -49,10 +50,11 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const { name, password, role } = await req.json();
+    const { name, email, password, role } = await req.json();
     const response = await prisma.user.create({
       data: {
         name,
+        email,
         password,
         role,
       },
@@ -78,7 +80,7 @@ export const PUT = async (req: NextRequest) => {
       );
     }
 
-    const { id, name, password, role } = await req.json();
+    const { id, name, email, password, role } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -91,6 +93,7 @@ export const PUT = async (req: NextRequest) => {
       where: { id },
       data: {
         name,
+        email,
         password,
         role,
       },
