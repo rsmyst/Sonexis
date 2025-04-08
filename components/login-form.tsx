@@ -16,13 +16,15 @@ export function LoginForm() {
 
     try {
       const result = await signIn("credentials", {
-        username,
+        userId: parseInt(username),
         password,
         redirect: false,
       });
 
       if (!result?.error) {
         router.push("/");
+      } else {
+        console.error("Login error:", result.error);
       }
     } catch (error) {
       console.error("Login error:", error);
