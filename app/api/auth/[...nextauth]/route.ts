@@ -1,8 +1,6 @@
-import NextAuth, { NextAuthOptions, User } from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { JWT } from "next-auth/jwt";
 
 const prisma = new PrismaClient();
 
@@ -32,8 +30,7 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             throw new Error("invalid userId");
           }
-          const isValidPassword = await bcrypt.compare(password, user.password);
-          if (!isValidPassword) {
+          if (password !== user.password) {
             throw new Error("incorrect password");
           }
           return { id: user.id, userId, role: user.role };

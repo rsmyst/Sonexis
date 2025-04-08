@@ -1,14 +1,19 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+// import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create admin user
-  const hashedPassword = await bcrypt.hash("admin123", 10);
+  // Create admin user with a fixed salt for development
+  // const salt = "$2a$10$CwTycUXWue0Thq9StjUM0u"; // Fixed salt for development
+  // const hashedPassword = await bcrypt.hash("admin123", salt);
+  const hashedPassword = "admin123"; //Test time password
+
   const admin = await prisma.user.upsert({
     where: { userId: 1 },
-    update: {},
+    update: {
+      password: hashedPassword, // Update password if user exists
+    },
     create: {
       name: "Admin User",
       password: hashedPassword,
