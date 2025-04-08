@@ -25,23 +25,36 @@ export function VoiceEnrollment() {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-        const formData = new FormData();
-        formData.append("file", audioBlob, "enrollment.wav");
-        formData.append("user_id", session?.user?.id || "");
+        try {
+          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+          const formData = new FormData();
+          
+          // Make sure these field names match what the API expects
+          formData.append("file", audioBlob, "enrollment.wav");
+          formData.append("user_id", session?.user?.id || "");
+          
+          setStatus("Uploading voice sample...");
+          
+          const response = await fetch("/api/voice-profile", {
+            method: "POST",
+            body: formData,
+          });
 
-        const response = await fetch("/api/voice-profile", {
-          method: "POST",
-          body: formData,
-        });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Enrollment failed");
+          }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Enrollment failed");
+          const result = await response.json();
+          setStatus(result.message || "Voice profile enrolled successfully");
+        } catch (error) {
+          console.error("Processing error:", error);
+          setStatus(error instanceof Error ? error.message : "Error during enrollment");
+        } finally {
+          // Always stop the audio tracks when done
+          stream.getTracks().forEach((track) => track.stop());
+          setIsEnrolling(false);
         }
-
-        setStatus("Voice profile enrolled successfully");
-        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
