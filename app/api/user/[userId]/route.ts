@@ -23,8 +23,13 @@ export const GET = async (
     }
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        password: false,
         settings: true,
+        profilePicture: true,
       },
     });
 
@@ -32,9 +37,7 @@ export const GET = async (
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(user);
   } catch (err) {
     console.log(err);
     return NextResponse.json({ error: "error fetching user" }, { status: 500 });
@@ -62,6 +65,13 @@ export const PATCH = async (
       await req.json();
     const { userId } = params;
 
+    console.log("PATCH request received:", {
+      userId,
+      name,
+      role,
+      voiceEnabled,
+      autoSuggestEnabled,
+    });
     console.log("PATCH request received:", {
       userId,
       name,
@@ -104,14 +114,45 @@ export const PATCH = async (
         },
       };
     }
+    if (role !== undefined) {
+      if (role !== "USER" && role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Invalid role value" },
+          { status: 400 }
+        );
+      }
+      updateData.role = role;
+    }
+
+    // Handle user settings updates
+    if (voiceEnabled !== undefined || autoSuggestEnabled !== undefined) {
+      updateData.settings = {
+        update: {
+          ...(voiceEnabled !== undefined && { voiceEnabled }),
+          ...(autoSuggestEnabled !== undefined && { autoSuggestEnabled }),
+        },
+      };
+    }
 
     console.log("Update data:", updateData);
 
     const response = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      include: {
-        settings: true,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        profilePicture: true,
+        settings: {
+          select: {
+            id: true,
+            userId: true,
+            language: true,
+            voiceEnabled: true,
+            autoSuggestEnabled: true,
+          },
+        },
       },
     });
 

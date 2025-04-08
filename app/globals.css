@@ -39,8 +39,8 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: #000000;
+  --radius: 0;
+  --background: var(--color-zinc-800);
   --foreground: #bfff00;
   --card: #000000;
   --card-foreground: #bfff00;
@@ -68,6 +68,8 @@
   --background-end-rgb: 0, 0, 0;
   /* Updated font variables for better specificity */
   --font-orbitron: "Orbitron", sans-serif !important;
+  --card-shadow: 0 0 10px rgba(191, 255, 0, 0.3),
+    0 0 20px rgba(191, 255, 0, 0.2);
 }
 
 body {
@@ -103,7 +105,8 @@ nav,
 
 /* Form input specific styles */
 .form-input {
-  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
+  @apply w-full px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
+  box-shadow: 0 0 5px rgba(191, 255, 0, 0.1);
   font-family: var(--font-orbitron) !important;
 }
 
@@ -164,32 +167,38 @@ h6 {
 }
 
 .btn-primary {
-  @apply bg-[#00e1ff] text-[#000000] py-2 px-4 rounded-md hover:bg-[#00c7e6] transition;
+  @apply bg-[#00e1ff] text-[#000000] py-2 px-4 hover:bg-[#00c7e6] transition;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
 }
 
 .btn-secondary {
-  @apply bg-[#bfff00] text-[#000000] py-2 px-4 rounded-md hover:bg-[#a6d900] transition;
+  @apply bg-[#bfff00] text-[#000000] py-2 px-4 hover:bg-[#a6d900] transition;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
 }
 
 /* Simplified theme classes with consistent colors */
 .theme-bg-primary {
   background-color: #00e1ff;
   color: #000000;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
 }
 
 .theme-bg-secondary {
   background-color: #bfff00;
   color: #000000;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
 }
 
 .theme-bg-accent {
   background-color: #00e1ff;
   color: #000000;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
 }
 
 .theme-bg-dark {
   background-color: #000000;
   color: #bfff00;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
 }
 
 .theme-border {
@@ -237,4 +246,47 @@ h6 {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+}
+
+/* Update card styles for cyberpunk look */
+.card {
+  @apply bg-card text-card-foreground;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(191, 255, 0, 0.1);
+}
+
+/* Update button styles */
+.btn-primary {
+  @apply bg-[#00e1ff] text-[#000000] py-2 px-4 hover:bg-[#00c7e6] transition;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
+}
+
+.btn-secondary {
+  @apply bg-[#bfff00] text-[#000000] py-2 px-4 hover:bg-[#a6d900] transition;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
+}
+
+/* Update theme classes */
+.theme-bg-primary {
+  background-color: #00e1ff;
+  color: #000000;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
+}
+
+.theme-bg-secondary {
+  background-color: #bfff00;
+  color: #000000;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
+}
+
+.theme-bg-accent {
+  background-color: #00e1ff;
+  color: #000000;
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.3);
+}
+
+.theme-bg-dark {
+  background-color: var(--color-neutral-900);
+  color: #bfff00;
+  box-shadow: 0 0 10px rgba(191, 255, 0, 0.3);
 }

@@ -7,8 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { IconUpload, IconTrash } from "@tabler/icons-react";
-import { VoiceEnrollment } from "@/components/voice-enrollment";
+import { IconUpload, IconTrash, IconMicrophone } from "@tabler/icons-react";
 
 interface UserSettings {
   language: string;
@@ -25,6 +24,10 @@ interface UserSettings {
 export default function AccountSettings() {
   const { data: session } = useSession();
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export default function AccountSettings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          [field]: !settings?.settings?.[field],
+          [field]: !settings?.settings?.settings?.[field],
         }),
       });
 
@@ -116,6 +119,100 @@ export default function AccountSettings() {
     } catch (err) {
       console.error("Error removing profile picture:", err);
       toast.error("Failed to remove profile picture");
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/wav",
+        });
+        await processVoiceEnrollment(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsEnrolling(true);
+      setRecordingStatus("Recording enrollment sample... Speak now");
+
+      // Stop recording after 5 seconds
+      setTimeout(() => {
+        if (mediaRecorderRef.current && isEnrolling) {
+          mediaRecorderRef.current.stop();
+          setIsEnrolling(false);
+          setRecordingStatus("Processing voice enrollment...");
+        }
+      }, 5000);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      setRecordingStatus("Error accessing microphone");
+      toast.error("Failed to access microphone");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isEnrolling) {
+      mediaRecorderRef.current.stop();
+      setIsEnrolling(false);
+      setRecordingStatus("Processing voice enrollment...");
+    }
+  };
+
+  const processVoiceEnrollment = async (audioBlob: Blob) => {
+    try {
+      if (!session?.user?.id) {
+        throw new Error("No user session found");
+      }
+
+      const formData = new FormData();
+      formData.append("userId", session.user.id);
+      formData.append("audioData", audioBlob);
+      formData.append(
+        "audioPath",
+        `voice_enrollment_${session.user.id}_${Date.now()}.wav`
+      );
+
+      const response = await fetch("/api/voice-profile", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setRecordingStatus("Voice enrollment successful");
+        toast.success("Voice profile enrolled successfully");
+      } else {
+        let errorMessage = "Voice enrollment failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error("Failed to parse error response as JSON:", jsonError);
+          // If response is not JSON, try to get text
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error processing voice enrollment:", error);
+      setRecordingStatus("Error processing voice enrollment");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to process voice enrollment"
+      );
     }
   };
 
@@ -212,55 +309,11 @@ export default function AccountSettings() {
           </CardContent>
         </Card>
 
-        {/* Settings Card */}
+        {/* Preferences Card */}
         <Card className="bg-zinc-900 border border-zinc-800">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-zinc-100">
               Preferences
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between py-2">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-zinc-400">
-                    Voice Recognition
-                  </Label>
-                  <p className="text-sm text-zinc-500">
-                    Enable voice commands for queries
-                  </p>
-                </div>
-                <Switch
-                  checked={settings?.settings?.voiceEnabled ?? false}
-                  onCheckedChange={() => handleToggle("voiceEnabled")}
-                  className="data-[state=checked]:bg-zinc-700 data-[state=unchecked]:bg-red-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-zinc-400">
-                    Auto Suggestions
-                  </Label>
-                  <p className="text-sm text-zinc-500">
-                    Get smart query suggestions as you type
-                  </p>
-                </div>
-                <Switch
-                  checked={settings?.settings?.autoSuggestEnabled ?? false}
-                  onCheckedChange={() => handleToggle("autoSuggestEnabled")}
-                  className="data-[state=checked]:bg-zinc-700 data-[state=unchecked]:bg-red-500"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Voice Settings Card */}
-        <Card className="bg-zinc-900 border border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-zinc-100">
-              Voice Settings
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -280,12 +333,46 @@ export default function AccountSettings() {
                 />
               </div>
 
-              {settings.settings?.voiceEnabled && (
-                <div className="mt-6">
-                  <Label className="text-sm font-medium text-zinc-400 mb-4 block">
-                    Voice Profile Enrollment
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium text-zinc-400">
+                    Auto Suggestions
                   </Label>
-                  <VoiceEnrollment />
+                  <p className="text-sm text-zinc-500">
+                    Enable query auto-suggestions
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.settings?.autoSuggestEnabled}
+                  onCheckedChange={() => handleToggle("autoSuggestEnabled")}
+                />
+              </div>
+
+              {settings.settings?.voiceEnabled && (
+                <div className="mt-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-400">
+                      Voice Profile Enrollment
+                    </Label>
+                    <p className="text-sm text-zinc-500">
+                      Record your voice to enable voice authentication
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center space-y-4">
+                    <Button
+                      onClick={isEnrolling ? stopRecording : startRecording}
+                      className={`p-4 rounded-full ${
+                        isEnrolling
+                          ? "bg-red-500 hover:bg-red-600"
+                          : "bg-[#694A38] hover:bg-[#5a3f30]"
+                      } transition-colors`}
+                    >
+                      <IconMicrophone size={24} className="theme-text-accent" />
+                    </Button>
+                    {recordingStatus && (
+                      <p className="text-sm text-zinc-400">{recordingStatus}</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -39,7 +39,7 @@ export default function NavbarWrapper({
             <NavbarButton
               onClick={() => signOut()}
               variant="secondary"
-              className="px-4 py-2 text-white"
+              className="px-4 py-2 text-[#00e1ff] hover:backdrop-blur-sm hover:text-xl"
             >
               Logout
             </NavbarButton>
