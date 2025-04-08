@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@/generated/main";
+import { PrismaClient as OrgPrismaClient } from "@/generated/org";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
@@ -10,6 +11,7 @@ import path from "path";
 import os from "os";
 
 const prisma = new PrismaClient();
+const orgPrisma = new OrgPrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // This is the main endpoint for processing natural language to SQL
 export const POST = async (req: NextRequest) => {
@@ -19,6 +21,10 @@ export const POST = async (req: NextRequest) => {
     if (!session?.user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
+    
+    // Get user role for permission checks
+    const userRole = session.user.role || "USER";
+    
     // Get request body which could contain:
     // - text query (converted from voice on client-side or directly typed)
     // - audio file or streaming data (would need to be processed by Whisper)
@@ -78,19 +84,47 @@ export const POST = async (req: NextRequest) => {
 
     // STEP 4: Process natural language to SQL using LLM (Gemini or other)
     // This would connect to your LLM service
-    const { sqlQuery, relatedQueries, suggestedVisualization } =
+    const { graphSqlQuery, relatedQueries, suggestedVisualization } =
       await processNaturalLanguageToSQL(textQuery, dbMetadata);
 
+    // For non-admin users, add a message indicating limitations
+    let userPermissionNote = null;
+    if (userRole !== "ADMIN" && !isReadOnlyQuery(graphSqlQuery)) {
+      return NextResponse.json(
+        { error: "You don't have permission to execute modification queries. Please try a query that only retrieves data." }, 
+        { status: 403 }
+      );
+    }
+
     // STEP 5: Execute the SQL query against the database
-    // This is a placeholder - in production, you would use a secure method to execute queries
-    // Consider using a dedicated service with proper access controls
-    const queryResults = await executeQuery(sqlQuery);
+    // Pass the user role to enforce permissions
+    const queryResults = await executeQuery(graphSqlQuery, userRole);
+
+    if (queryResults.data?.error) {
+      // Save failed query to history
+      const errorHistory = await prisma.queryHistory.create({
+        data: {
+          userId: session.user.id,
+          userQuery: textQuery,
+          sqlQuery: graphSqlQuery,
+          successful: false,
+          errorMessage: queryResults.data.error,
+          executionTime: queryResults.executionTime,
+        }
+      });
+    
+      return NextResponse.json({
+        error: queryResults.data.error,
+        queryId: errorHistory.id
+      }, { status: 400 });
+    }
+    
     // STEP 6: Save the query to history
     const queryHistory = await prisma.queryHistory.create({
       data: {
         userId: session.user.id,
         userQuery: textQuery,
-        sqlQuery,
+        sqlQuery: graphSqlQuery,
         relatedQueries,
         results: queryResults,
         executionTime: queryResults.executionTime,
@@ -115,13 +149,14 @@ export const POST = async (req: NextRequest) => {
     return NextResponse.json({
       query: {
         original: textQuery,
-        sql: sqlQuery,
+        sql: graphSqlQuery,
         relatedQueries,
       },
       results: queryResults.data,
       visualization: queryHistory.visualization,
       executionTime: queryResults.executionTime,
       queryId: queryHistory.id,
+      userPermissionNote, // Include permission note if relevant
     });
   } catch (err) {
     console.log(err);
@@ -143,10 +178,20 @@ export const POST = async (req: NextRequest) => {
       console.log("Failed to save error to history:", historyErr);
     }
 
-    return NextResponse.json(
-      { error: "error processing query" },
-      { status: 500 }
-    );
+    let errorMessage = "Database query failed";
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    } else if (typeof err === 'string') {
+      errorMessage = err;
+    }
+
+    return NextResponse.json({
+      query: { original: textQuery },
+      error: err instanceof Error ? err.message : 'Unknown error',
+      ...(err instanceof Prisma.PrismaClientKnownRequestError
+        ? { prismaError: err.meta }
+        : {})
+    }, { status: 500 });
   }
 };
 
@@ -219,61 +264,126 @@ function cleanResponseText(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 }
 
+// Helper function to get database schema
+async function getOrgDatabaseSchema() {
+  try {
+    // Get all tables from the org database
+    const tables = await orgPrisma.$queryRaw<{ table_name: string }[]>`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `;
+
+    const schema: any = {};
+    
+    // For each table, get its columns
+    for (const table of tables) {
+      const columns = await orgPrisma.$queryRaw`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = ${table.table_name}
+      `;
+      
+      schema[table.table_name] = columns;
+    }
+
+    return schema;
+  } catch (error) {
+    console.error("Error fetching database schema:", error);
+    throw error;
+  }
+}
+
 // Process natural language to SQL using LLM
 async function processNaturalLanguageToSQL(
   query: string,
   dbMetadata: any[]         
 ): Promise<{
-  sqlQuery: string;
+  graphSqlQuery: string;
   relatedQueries: any;
   suggestedVisualization?: any;
 }> {
   try {
     console.log("Starting natural language to SQL processing...");
+    
+    // Get the org database schema
+    const orgSchema = await getOrgDatabaseSchema();
+    
     // Try using a different model name based on the available models
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash",  // Updated model name
+      model: "gemini-2.0-flash",
       generationConfig: {
         temperature: 0.2,
       }
     });
 
     // Prepare the prompt with database schema and user query
-    const prompt = `Given the following database schema and user query, generate an appropriate SQL query.
-        Also suggest related queries and a suitable visualization (available charts : area_chart, bar_chart_interactive, regular_bar_graph, pie_chart, stack_graph).
+    const prompt = `You are writing postgreSQL code to query/modify a company's database for visualization purposes. Given the database schema and user query, generate:
+        1. A SINGLE visualization-specific postgreSQL query (only one query, no multiple statements)
+        2. Related queries/code
+        3. Visualization configuration matching EXACT component data structures:
 
-        Database Schema:
-        ${JSON.stringify(dbMetadata, null, 2)}
-
+        Database Schema: ${JSON.stringify(orgSchema)}
         User Query: ${query}
 
-        Please provide:
-        1. A SQL query that answers the user's question
-        2. 2-3 related queries that could provide additional insights
-        3. A suggested visualization type and configuration
+        STRICT DATA STRUCTURE REQUIREMENTS:
+        - StackedGraph (stacked area):
+          • First column = xAxisKey (date/category)
+          • Subsequent columns = numeric series values
+          • Example row: {{"month": "2025-04", "sales": 5000, "expenses": 3000}}
+          • Required SQL: Include PIVOT/GROUP BY for multiple series
 
-        Format the response as a JSON object with the following structure:
+        - Pie (pie chart):
+          • Column 1 = nameKey (category)
+          • Column 2 = valueKey (numeric)
+          • Max 7 categories (aggregate extras as 'Other')
+          • Example row: {{"department": "Marketing", "budget": 120000}}
+
+        - Donut Chart:
+          • Column 1 = nameKey (category)
+          • Column 2 = valueKey (numeric)
+          • Max 7 categories (aggregate extras as 'Other')
+          • Example row: {{"department": "Marketing", "budget": 120000}}
+
+        - BarGraph (single-series bar):
+          • Column 1 = xAxisKey (category)
+          • Column 2 = numeric value
+          • Example row: {{"region": "EMEA", "revenue": 75000}}
+
+        - Line Graph (line):
+          • Column 1 = xAxisKey (category)
+          • Column 2 = numeric value
+          • Example row: {{"region": "EMEA", "revenue": 75000}}
+          
+        Required JSON response format:
         {
-            "sqlQuery": "the generated SQL query",
+            "graphSqlQuery": "query structured for visualization",
             "relatedQueries": [
-                {
-                    "description": "description of the related query",
-                    "sql": "the SQL query"
-                }
+                {"description": "...", "sql": "..."}
             ],
             "suggestedVisualization": {
-                "chartType": "type of chart (e.g., bar, line, pie)",
+                "chartType": "StackedGraph|Pie|BarGraph2Cat|BarGraph|BarChartInteractive",
                 "chartOptions": {
-                    "xAxis": { "key": "column name", "label": "axis label" },
-                    "yAxis": { "key": "column name", "label": "axis label" },
-                    "colors": ["color1", "color2"]
+                    "xAxisKey": "first_column_name",
+                    "yAxisKeys": ["sales", "expenses"] (for multi-series),
+                    "nameKey": "category_column" (pie only),
+                    "valueKey": "value_column" (pie only),
+                    "dateFormat": "MMM yyyy" (if time-based)
                 },
-                "title": "chart title",
-                "description": "chart description"
+                "title": "Chart title",
+                "description": "Why this visualization fits",
+                "sampleData": [
+                    {"first_column": "example1", "series1": 100, "series2": 200},
+                    {"first_column": "example2", "series1": 150, "series2": 250}
+                ]
             }
-        }`;
+        }
+
+        Focus on EXACT data shape requirements for each chart type. Never suggest visualizations that don't match the data structure rules.`;
 
     console.log("Sending prompt to Gemini API...");
+    console.log(prompt);
 
     try {
       // Try the normal API call first
@@ -283,13 +393,18 @@ async function processNaturalLanguageToSQL(
       const text = response.text();
       console.log("Raw response text:", text);
 
-      // Clean and parse the JSON response
-      const cleanedText = cleanResponseText(text);
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response");
+      }
+
+      const cleanedText = jsonMatch[0];
       console.log("Cleaned response text:", cleanedText.substring(0, 200) + "...");
       const parsedResponse = JSON.parse(cleanedText);
       console.log("Successfully parsed JSON response");
       return {
-        sqlQuery: parsedResponse.sqlQuery,
+        graphSqlQuery: parsedResponse.graphSqlQuery,
         relatedQueries: parsedResponse.relatedQueries,
         suggestedVisualization: parsedResponse.suggestedVisualization,
       };
@@ -301,13 +416,18 @@ async function processNaturalLanguageToSQL(
       const fallbackText = fallbackResult.response.text();
       console.log("Fallback raw response:", fallbackText.substring(0, 200) + "...");
 
-      // Clean and parse the JSON response from fallback
-      const cleanedFallbackText = cleanResponseText(fallbackText);
+      // Extract JSON from fallback response
+      const fallbackJsonMatch = fallbackText.match(/\{[\s\S]*\}/);
+      if (!fallbackJsonMatch) {
+        throw new Error("No JSON found in fallback response");
+      }
+
+      const cleanedFallbackText = fallbackJsonMatch[0];
       console.log("Cleaned fallback text:", cleanedFallbackText.substring(0, 200) + "...");
       const parsedFallback = JSON.parse(cleanedFallbackText);
       console.log("Successfully parsed fallback JSON response");
       return {
-        sqlQuery: parsedFallback.sqlQuery,
+        graphSqlQuery: parsedFallback.graphSqlQuery,
         relatedQueries: parsedFallback.relatedQueries,
         suggestedVisualization: parsedFallback.suggestedVisualization,
       };
@@ -392,158 +512,60 @@ function validateModificationQuery(query: string): void {
   }
 }
 
-// Execute SQL query against the database
+// Execute SQL query against the org database
 async function executeQuery(
-  sqlQuery: string
+  sqlQuery: string, 
+  userRole: string
 ): Promise<{ data: any; executionTime: number }> {
   const startTime = Date.now();
 
   try {
-    // Optional: Add query validation to prevent destructive operations
+    if (typeof sqlQuery !== 'string') {
+      throw new Error('Invalid SQL query format');
+    }
+    // Check if the query is read-only
     const isReadOnly = isReadOnlyQuery(sqlQuery);
+    const normalizedQuery = sqlQuery.trim().toUpperCase();
 
+    // Regular users can only execute read-only queries
+    if (userRole !== "ADMIN" && !isReadOnly) {
+      throw new Error("You don't have permission to modify the database. Only SELECT queries are allowed for your role.");
+    }
+
+    // Perform validation based on user role
     if (!isReadOnly) {
+      // Admin checks - admins can modify but still need to follow system table protections
       validateModificationQuery(sqlQuery);
     } else {
-      // Even for read-only queries, we should prevent excessive data access
-      // to system tables for security reasons
+      // Read validation for all users
       validateReadQuery(sqlQuery);
     }
 
-    // Execute the query using Prisma's raw query capabilities
+    // Execute the query using orgPrisma's raw query capabilities
     let results;
-    const normalizedQuery = sqlQuery.trim().toUpperCase();
 
     // Handle different query types (SELECT, CREATE, INSERT, etc.)
     if (normalizedQuery.startsWith("SELECT")) {
       // For SELECT queries, use $queryRaw
-      results = await prisma.$queryRaw`${sqlQuery}`;
+      results = await orgPrisma.$queryRawUnsafe(sqlQuery);
       return {
         data: results,
         executionTime: Date.now() - startTime,
       };
-    }
-
-    // Handle CREATE TABLE operations
-    else if (normalizedQuery.startsWith("CREATE TABLE")) {
-      // Extract table name for response
-      const tableNameMatch = sqlQuery.match(
-        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"']?(\w+)[`"']?/i
-      );
-      const tableName = tableNameMatch ? tableNameMatch[1] : "unknown";
-
-      // Execute the CREATE TABLE query
-      await prisma.$executeRaw`${sqlQuery}`;
-
+    } else if (normalizedQuery.startsWith("CREATE") || normalizedQuery.startsWith("ALTER") || normalizedQuery.startsWith("DROP")) {
+      // For DDL statements, use $executeRawUnsafe
+      const result = await orgPrisma.$executeRawUnsafe(sqlQuery);
       return {
         data: {
-          message: `Table '${tableName}' created successfully`,
-          operation: "CREATE_TABLE",
-          tableName,
-        },
-        executionTime: Date.now() - startTime,
-      };
-    }
-
-    // Handle ALTER TABLE operations
-    else if (normalizedQuery.startsWith("ALTER TABLE")) {
-      // Extract table name and operation type for better response
-      const tableNameMatch = sqlQuery.match(
-        /ALTER\s+TABLE\s+[`"']?(\w+)[`"']?/i
-      );
-      const tableName = tableNameMatch ? tableNameMatch[1] : "unknown";
-
-      let operationType = "MODIFY";
-      if (normalizedQuery.includes("ADD COLUMN")) operationType = "ADD_COLUMN";
-      else if (normalizedQuery.includes("DROP COLUMN"))
-        operationType = "DROP_COLUMN";
-      else if (normalizedQuery.includes("RENAME")) operationType = "RENAME";
-
-      // Execute the ALTER TABLE query
-      await prisma.$executeRaw`${sqlQuery}`;
-
-      return {
-        data: {
-          message: `Table '${tableName}' altered successfully`,
-          operation: operationType,
-          tableName,
-        },
-        executionTime: Date.now() - startTime,
-      };
-    }
-
-    // Handle INSERT operations with return of inserted ID(s) when possible
-    else if (normalizedQuery.startsWith("INSERT")) {
-      // Extract table name for better response
-      const tableNameMatch = sqlQuery.match(
-        /INSERT\s+INTO\s+[`"']?(\w+)[`"']?/i
-      );
-      const tableName = tableNameMatch ? tableNameMatch[1] : "unknown";
-
-      // Execute the INSERT query
-      const result = await prisma.$executeRaw`${sqlQuery}`;
-
-      return {
-        data: {
-          message: `Data inserted successfully into '${tableName}'`,
-          operation: "INSERT",
-          tableName,
+          message: "DDL statement executed successfully",
           rowsAffected: result,
         },
         executionTime: Date.now() - startTime,
       };
-    }
-
-    // Handle UPDATE operations with detailed information
-    else if (normalizedQuery.startsWith("UPDATE")) {
-      // Extract table name and condition for better response
-      const tableNameMatch = sqlQuery.match(/UPDATE\s+[`"']?(\w+)[`"']?/i);
-      const tableName = tableNameMatch ? tableNameMatch[1] : "unknown";
-
-      // Extract WHERE clause if present for context
-      const whereClauseMatch = sqlQuery.match(/WHERE\s+(.+)(?:;|$)/i);
-      const whereCondition = whereClauseMatch
-        ? whereClauseMatch[1].trim()
-        : "all records";
-
-      // Execute the UPDATE query
-      const rowsAffected = await prisma.$executeRaw`${sqlQuery}`;
-
-      return {
-        data: {
-          message: `Data updated successfully in '${tableName}'`,
-          operation: "UPDATE",
-          tableName,
-          whereCondition,
-          rowsAffected,
-        },
-        executionTime: Date.now() - startTime,
-      };
-    }
-
-    // Handle DELETE operations
-    else if (normalizedQuery.startsWith("DELETE")) {
-      // Extract table name for better response
-      const tableNameMatch = sqlQuery.match(/FROM\s+[`"']?(\w+)[`"']?/i);
-      const tableName = tableNameMatch ? tableNameMatch[1] : "unknown";
-
-      // Execute the DELETE query
-      const rowsAffected = await prisma.$executeRaw`${sqlQuery}`;
-
-      return {
-        data: {
-          message: `Data deleted successfully from '${tableName}'`,
-          operation: "DELETE",
-          tableName,
-          rowsAffected,
-        },
-        executionTime: Date.now() - startTime,
-      };
-    }
-
-    // For other queries (GRANT, SET, etc.)
-    else {
-      const result = await prisma.$executeRaw`${sqlQuery}`;
+    } else {
+      // For other query types (INSERT, UPDATE, DELETE, etc.) - only admins reach here
+      // Use $executeRawUnsafe for DML statements
+      const result = await orgPrisma.$executeRawUnsafe(sqlQuery);
       return {
         data: {
           message: "Query executed successfully",
@@ -554,12 +576,55 @@ async function executeQuery(
     }
   } catch (error: any) {
     console.error("Database query error:", error);
-    throw new Error(`Failed to execute query: ${error.message}`);
+    // Return a more user-friendly error message
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return {
+        data: { 
+          error: error.message,
+          code: error.code,
+          meta: error.meta 
+        },
+        executionTime: Date.now() - startTime
+      };
+    }
+
+    // Handle other error types
+    return {
+      data: { 
+          error: error instanceof Error ? error.message : 'Unknown database error'
+        },
+      executionTime: Date.now() - startTime
+    };
+  }
+}
+
+// Helper function to extract table name from SQL query
+function extractTableName(sqlQuery: string): string | null {
+  const normalizedQuery = sqlQuery.trim().toUpperCase();
+  const tableMatch = normalizedQuery.match(/FROM\s+([^\s,;]+)/i);
+  return tableMatch ? tableMatch[1].toLowerCase() : null;
+}
+
+// Helper function to check if a table exists
+async function checkTableExists(tableName: string): Promise<boolean> {
+  try {
+    const result = await orgPrisma.$queryRawUnsafe<[{ exists: boolean }]>(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = '${tableName}'
+      );
+    `);
+    return result[0].exists;
+  } catch (error) {
+    console.error("Error checking table existence:", error);
+    return false;
   }
 }
 
 // Helper function to check if a query is read-only
 function isReadOnlyQuery(query: string): boolean {
+  if (!query) return false;
   const normalizedQuery = query.trim().toUpperCase();
   return (
     normalizedQuery.startsWith("SELECT") ||
@@ -600,6 +665,5 @@ function validateReadQuery(query: string): void {
       "Joining operations involving sensitive user data are restricted"
     );
   }
-
   // Add additional read restrictions as needed for your security requirements
 }
