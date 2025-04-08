@@ -139,7 +139,6 @@ export const POST = async (req: NextRequest) => {
           embeddings: {}, // The actual embeddings are stored in the diarization system
           modelVersion: "v1.0",
           isActive: true,
-          audioPath: webPath,
         },
       });
 
