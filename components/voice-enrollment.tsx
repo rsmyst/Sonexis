@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { IconMicrophone } from "@tabler/icons-react";
+import { useSession } from "next-auth/react";
 
 export function VoiceEnrollment() {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [status, setStatus] = useState("");
+  const { data: session } = useSession();
 
   const handleEnroll = async () => {
     try {
@@ -25,15 +27,17 @@ export function VoiceEnrollment() {
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
         const formData = new FormData();
-        formData.append("audio", audioBlob);
+        formData.append("file", audioBlob, "enrollment.wav");
+        formData.append("user_id", session?.user?.id || "");
 
-        const response = await fetch("/api/auth/enroll", {
+        const response = await fetch("/api/voice-profile", {
           method: "POST",
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error("Enrollment failed");
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Enrollment failed");
         }
 
         setStatus("Voice profile enrolled successfully");
@@ -47,7 +51,7 @@ export function VoiceEnrollment() {
       }, 5000); // Record for 5 seconds
     } catch (error) {
       console.error("Enrollment error:", error);
-      setStatus("Error during enrollment");
+      setStatus(error instanceof Error ? error.message : "Error during enrollment");
       setIsEnrolling(false);
     }
   };
