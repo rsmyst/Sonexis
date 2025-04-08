@@ -19,6 +19,7 @@ interface UserSettings {
     voiceEnabled: boolean;
     autoSuggestEnabled: boolean;
   };
+  email?: string;
 }
 
 export default function AccountSettings() {
@@ -180,7 +181,8 @@ export default function AccountSettings() {
       formData.append("user_id", session.user.id);
       formData.append("file", audioBlob);
       formData.append(
-        "audioPath",
+        "file",
+        audioBlob,
         `voice_enrollment_${session.user.id}_${Date.now()}.wav`
       );
 
@@ -190,8 +192,17 @@ export default function AccountSettings() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setRecordingStatus("Voice enrollment successful");
         toast.success("Voice profile enrolled successfully");
+
+        // Create download link for the WAV file
+        const downloadLink = document.createElement("a");
+        downloadLink.href = data.downloadUrl;
+        downloadLink.download = `voice_enrollment_${
+          session.user.id
+        }_${Date.now()}.wav`;
+        downloadLink.click();
       } else {
         let errorMessage = "Voice enrollment failed";
         try {
@@ -199,7 +210,6 @@ export default function AccountSettings() {
           errorMessage = errorData.error || errorMessage;
         } catch (jsonError) {
           console.error("Failed to parse error response as JSON:", jsonError);
-          // If response is not JSON, try to get text
           const text = await response.text();
           errorMessage = text || errorMessage;
         }
@@ -218,8 +228,8 @@ export default function AccountSettings() {
 
   if (!settings) {
     return (
-      <div className="min-h-screen flex items-center justify-center theme-bg-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -243,6 +253,15 @@ export default function AccountSettings() {
                       src={settings.profilePicture}
                       alt="Profile"
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onLoad={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.style.opacity = "1";
+                      }}
+                      style={{
+                        opacity: 0,
+                        transition: "opacity 0.3s ease-in-out",
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
@@ -288,14 +307,14 @@ export default function AccountSettings() {
                 </p>
               </div>
 
-              {/* <div className="space-y-1.5">
+              <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">
                   Email
                 </Label>
                 <p className="text-lg font-medium text-zinc-100">
-                  {session?.user?.email}
+                  {settings?.email || "Not set"}
                 </p>
-              </div> */}
+              </div>
 
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-zinc-400">
@@ -328,7 +347,7 @@ export default function AccountSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.settings?.voiceEnabled}
+                  checked={settings?.settings?.voiceEnabled}
                   onCheckedChange={() => handleToggle("voiceEnabled")}
                 />
               </div>
@@ -343,7 +362,7 @@ export default function AccountSettings() {
                   </p>
                 </div>
                 <Switch
-                  checked={settings.settings?.autoSuggestEnabled}
+                  checked={settings?.settings?.autoSuggestEnabled}
                   onCheckedChange={() => handleToggle("autoSuggestEnabled")}
                 />
               </div>
@@ -361,13 +380,13 @@ export default function AccountSettings() {
                   <div className="flex flex-col items-center space-y-4">
                     <Button
                       onClick={isEnrolling ? stopRecording : startRecording}
-                      className={`p-4 rounded-full ${
+                      className={`p-8 rounded-full ${
                         isEnrolling
                           ? "bg-red-500 hover:bg-red-600"
-                          : "bg-[#694A38] hover:bg-[#5a3f30]"
+                          : "bg-[#3C6E71] hover:bg-[#244244]"
                       } transition-colors`}
                     >
-                      <IconMicrophone size={24} className="theme-text-accent" />
+                      <IconMicrophone size={56} className="theme-text-accent" />
                     </Button>
                     {recordingStatus && (
                       <p className="text-sm text-zinc-400">{recordingStatus}</p>

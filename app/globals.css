@@ -54,7 +54,7 @@
   --muted-foreground: #bfff00;
   --accent: #00e1ff;
   --accent-foreground: #000000;
-  --destructive: #ff0000;
+  --destructive: #aa0000;
   --border: rgba(191, 255, 0, 0.15);
   --input: rgba(191, 255, 0, 0.15);
   --ring: #00e1ff;
@@ -105,9 +105,14 @@ nav,
 
 /* Form input specific styles */
 .form-input {
-  @apply w-full px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
-  box-shadow: 0 0 5px rgba(191, 255, 0, 0.1);
+  @apply w-full px-3 py-2 border-0 hover:outline-none hover:ring-0;
+  box-shadow: 3px 3px 0px #ff10f0;
+  transition: box-shadow 0.2s ease;
   font-family: var(--font-orbitron) !important;
+}
+
+.form-input:hover {
+  box-shadow: 7px 7px 0px #ff10f0;
 }
 
 .dark {
@@ -126,7 +131,7 @@ nav,
   --muted-foreground: #bfff00;
   --accent: #00e1ff;
   --accent-foreground: #000000;
-  --destructive: #ff0000;
+  --destructive: #aa0000;
   --border: rgba(191, 255, 0, 0.15);
   --input: rgba(191, 255, 0, 0.15);
   --ring: #00e1ff;
@@ -162,9 +167,9 @@ h6 {
 }
 
 /* Common form styles */
-.form-input {
-  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00e1ff];
-}
+/* .form-input {
+  @apply w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF10F0];
+} */
 
 .btn-primary {
   @apply bg-[#00e1ff] text-[#000000] py-2 px-4 hover:bg-[#00c7e6] transition;

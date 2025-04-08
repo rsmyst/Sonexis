@@ -1,12 +1,8 @@
 "use client";
 
+import * as React from "react";
 import { TrendingUp } from "lucide-react";
-import {
-  Area,
-  AreaChart as RechartsAreaChart,
-  CartesianGrid,
-  XAxis,
-} from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 
 import {
   Card,
@@ -23,16 +19,16 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-interface StackedData {
+interface LineData {
   [key: string]: string | number;
 }
 
-interface StackedGraphProps {
-  data: StackedData[];
+interface LineChartProps {
+  data: LineData[];
   title: string;
   description: string;
   xAxisKey: string;
-  yAxisKeys: string[];
+  dataKeys: string[];
   footerData?: {
     trend?: {
       value: number;
@@ -42,16 +38,16 @@ interface StackedGraphProps {
   };
 }
 
-export function StackedGraph({
+export function LineChartComponent({
   data,
   title,
   description,
   xAxisKey,
-  yAxisKeys,
+  dataKeys,
   footerData,
-}: StackedGraphProps) {
+}: LineChartProps) {
   // Create chart config dynamically based on the data keys
-  const dynamicChartConfig = yAxisKeys.reduce((acc, key, index) => {
+  const dynamicChartConfig = dataKeys.reduce((acc, key, index) => {
     acc[key] = {
       label: key.charAt(0).toUpperCase() + key.slice(1),
       color: `hsl(var(--chart-${index + 1}))`,
@@ -67,7 +63,7 @@ export function StackedGraph({
       </CardHeader>
       <CardContent>
         <ChartContainer config={dynamicChartConfig}>
-          <RechartsAreaChart
+          <LineChart
             accessibilityLayer
             data={data}
             margin={{
@@ -85,44 +81,44 @@ export function StackedGraph({
             />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
+              content={<ChartTooltipContent hideLabel />}
             />
-            {yAxisKeys.map((key, index) => (
-              <Area
+            {dataKeys.map((key, index) => (
+              <Line
                 key={key}
                 dataKey={key}
                 type="natural"
-                fill={`var(--color-${key})`}
-                fillOpacity={0.4}
-                stroke={`var(--color-${key})`}
-                stackId="a"
+                stroke={`hsl(var(--chart-${index + 1}))`}
+                strokeWidth={2}
+                dot={{
+                  fill: `hsl(var(--chart-${index + 1}))`,
+                }}
+                activeDot={{
+                  r: 6,
+                }}
               />
             ))}
-          </RechartsAreaChart>
+          </LineChart>
         </ChartContainer>
       </CardContent>
       {footerData && (
-        <CardFooter>
-          <div className="flex w-full items-start gap-2 text-sm">
-            <div className="grid gap-2">
-              {footerData.trend && (
-                <div className="flex items-center gap-2 font-medium leading-none">
-                  Trending {footerData.trend.direction} by{" "}
-                  {footerData.trend.value}% this month
-                  <TrendingUp
-                    className={`h-4 w-4 ${
-                      footerData.trend.direction === "down" ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-              )}
-              {footerData.description && (
-                <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                  {footerData.description}
-                </div>
-              )}
+        <CardFooter className="flex-col items-start gap-2 text-sm">
+          {footerData.trend && (
+            <div className="flex gap-2 font-medium leading-none">
+              Trending {footerData.trend.direction} by {footerData.trend.value}%
+              this month
+              <TrendingUp
+                className={`h-4 w-4 ${
+                  footerData.trend.direction === "down" ? "rotate-180" : ""
+                }`}
+              />
             </div>
-          </div>
+          )}
+          {footerData.description && (
+            <div className="leading-none text-muted-foreground">
+              {footerData.description}
+            </div>
+          )}
         </CardFooter>
       )}
     </Card>

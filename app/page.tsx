@@ -1,14 +1,49 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { IconMicrophoneFilled } from "@tabler/icons-react";
+import Link from "next/link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStatus, setRecordingStatus] = useState("");
+  const [voiceModelStatus, setVoiceModelStatus] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    const checkVoiceModel = async () => {
+      try {
+        const response = await fetch("/api/check-voice-model", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+          if (
+            data.error?.toLowerCase().includes("voice model") ||
+            data.error?.toLowerCase().includes("voice authentication") ||
+            data.error?.toLowerCase().includes("voice not found")
+          ) {
+            setVoiceModelStatus(
+              "You don't have a voice model yet. Please contact your administrator to set up voice authentication."
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error checking voice model:", error);
+      }
+    };
+
+    checkVoiceModel();
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -53,9 +88,8 @@ export default function Home() {
       const base64Audio = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          // Get the base64 string without the data URL prefix
           const base64 = reader.result as string;
-          const base64Data = base64.split(',')[1];
+          const base64Data = base64.split(",")[1];
           resolve(base64Data);
         };
         reader.readAsDataURL(audioBlob);
@@ -68,25 +102,59 @@ export default function Home() {
         },
         body: JSON.stringify({
           audioFile: base64Audio,
-          requestVoiceAuth: true
+          requestVoiceAuth: true,
         }),
       });
 
+      const data = await response.json();
+      console.log("API Response:", data);
+
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw new Error(
+          data.error || `Request failed with status ${response.status}`
+        );
       }
 
-      const data = await response.json();
       if (data.error) {
-        setRecordingStatus(`Error: ${data.error}`);
+        console.log("Error received:", data.error);
+        // Check for various voice model related error messages
+        const errorMessage = data.error.toLowerCase();
+        if (
+          errorMessage.includes("voice model") ||
+          errorMessage.includes("voice authentication") ||
+          errorMessage.includes("voice not found") ||
+          errorMessage.includes("no voice profile") ||
+          errorMessage.includes("voice profile not found")
+        ) {
+          setVoiceModelStatus(
+            "You don't have a voice model yet. Please contact your administrator to set up voice authentication."
+          );
+          setRecordingStatus("Voice authentication required");
+        } else {
+          setRecordingStatus(`Error: ${data.error}`);
+        }
       } else {
         setQuery(data.query?.original || "");
-        console.log(JSON.stringify(data));
+        setVoiceModelStatus(null); // Clear any existing voice model error
         setRecordingStatus("Query processed successfully");
       }
     } catch (error) {
       console.error("Error processing audio:", error);
-      setRecordingStatus("Error processing audio");
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.toLowerCase().includes("voice model") ||
+        errorMessage.toLowerCase().includes("voice authentication") ||
+        errorMessage.toLowerCase().includes("voice not found") ||
+        errorMessage.toLowerCase().includes("no voice profile")
+      ) {
+        setVoiceModelStatus(
+          "You don't have a voice model yet. Please contact your administrator to set up voice authentication."
+        );
+        setRecordingStatus("Voice authentication required");
+      } else {
+        setRecordingStatus("Error processing audio");
+      }
     }
   };
 
@@ -169,7 +237,23 @@ export default function Home() {
             className="w-full px-4 py-2 bg-transparent border-b-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:border-[#ff00ff] transition-colors duration-300"
           />
         </form>
+
+        <Link href="/graphs" className="mt-8">
+          <button className="px-6 py-3 bg-[#00e1ff] text-white rounded-lg hover:bg-[#ff00ff] transition-colors duration-300">
+            View Graphs
+          </button>
+        </Link>
       </div>
+
+      {voiceModelStatus && (
+        <div className="fixed bottom-4 right-4 max-w-md">
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Voice Authentication Required</AlertTitle>
+            <AlertDescription>{voiceModelStatus}</AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }

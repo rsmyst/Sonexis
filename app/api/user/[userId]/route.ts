@@ -26,6 +26,7 @@ export const GET = async (
       select: {
         id: true,
         name: true,
+        email: true,
         role: true,
         password: false,
         settings: true,
@@ -61,20 +62,14 @@ export const PATCH = async (
       );
     }
 
-    const { name, password, role, voiceEnabled, autoSuggestEnabled } =
+    const { name, email, password, role, voiceEnabled, autoSuggestEnabled } =
       await req.json();
     const { userId } = params;
 
     console.log("PATCH request received:", {
       userId,
       name,
-      role,
-      voiceEnabled,
-      autoSuggestEnabled,
-    });
-    console.log("PATCH request received:", {
-      userId,
-      name,
+      email,
       role,
       voiceEnabled,
       autoSuggestEnabled,
@@ -83,17 +78,25 @@ export const PATCH = async (
     // Only include fields that are provided in the update
     const updateData: {
       name?: string;
+      email?: string;
       password?: string;
       role?: "USER" | "ADMIN";
       settings?: {
-        update: {
-          voiceEnabled?: boolean;
-          autoSuggestEnabled?: boolean;
+        upsert: {
+          create: {
+            voiceEnabled: boolean;
+            autoSuggestEnabled: boolean;
+          };
+          update: {
+            voiceEnabled?: boolean;
+            autoSuggestEnabled?: boolean;
+          };
         };
       };
     } = {};
 
     if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
     if (password !== undefined) updateData.password = password;
     if (role !== undefined) {
       if (role !== "USER" && role !== "ADMIN") {
@@ -108,28 +111,15 @@ export const PATCH = async (
     // Handle user settings updates
     if (voiceEnabled !== undefined || autoSuggestEnabled !== undefined) {
       updateData.settings = {
-        update: {
-          ...(voiceEnabled !== undefined && { voiceEnabled }),
-          ...(autoSuggestEnabled !== undefined && { autoSuggestEnabled }),
-        },
-      };
-    }
-    if (role !== undefined) {
-      if (role !== "USER" && role !== "ADMIN") {
-        return NextResponse.json(
-          { error: "Invalid role value" },
-          { status: 400 }
-        );
-      }
-      updateData.role = role;
-    }
-
-    // Handle user settings updates
-    if (voiceEnabled !== undefined || autoSuggestEnabled !== undefined) {
-      updateData.settings = {
-        update: {
-          ...(voiceEnabled !== undefined && { voiceEnabled }),
-          ...(autoSuggestEnabled !== undefined && { autoSuggestEnabled }),
+        upsert: {
+          create: {
+            voiceEnabled: voiceEnabled ?? true,
+            autoSuggestEnabled: autoSuggestEnabled ?? true,
+          },
+          update: {
+            ...(voiceEnabled !== undefined && { voiceEnabled }),
+            ...(autoSuggestEnabled !== undefined && { autoSuggestEnabled }),
+          },
         },
       };
     }
@@ -142,6 +132,7 @@ export const PATCH = async (
       select: {
         id: true,
         name: true,
+        email: true,
         role: true,
         profilePicture: true,
         settings: {

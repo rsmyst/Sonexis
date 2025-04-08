@@ -2,6 +2,7 @@ import { PrismaClient } from "@/generated/main";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { sendWelcomeEmail } from "@/app/utils/email";
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,7 @@ export const GET = async () => {
         password: false,
         userId: true,
         name: true,
+        email: true,
         role: true,
         createdAt: true,
         profilePicture: true,
@@ -49,18 +51,41 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const { name, password, role } = await req.json();
+    const { name, email, password, role } = await req.json();
+
+    // Check if user with this email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User with this email already exists" },
+        { status: 400 }
+      );
+    }
+
     const response = await prisma.user.create({
       data: {
         name,
+        email,
         password,
         role,
       },
     });
+
+    // Send welcome email to the new user
+    try {
+      await sendWelcomeEmail(email, name);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      // Don't fail the user creation if email fails
+    }
+
     return NextResponse.json(response, { status: 201 });
   } catch (err) {
-    console.log(err);
-    return NextResponse.json({ error: "error adding equipment" });
+    console.error("Error adding user:", err);
+    return NextResponse.json({ error: "error adding user" }, { status: 500 });
   }
 };
 
@@ -78,7 +103,7 @@ export const PUT = async (req: NextRequest) => {
       );
     }
 
-    const { id, name, password, role } = await req.json();
+    const { id, name, email, password, role } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -91,6 +116,7 @@ export const PUT = async (req: NextRequest) => {
       where: { id },
       data: {
         name,
+        email,
         password,
         role,
       },

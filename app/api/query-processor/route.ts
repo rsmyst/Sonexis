@@ -9,6 +9,7 @@ import FormData from "form-data";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const orgPrisma = new OrgPrismaClient();
@@ -21,19 +22,15 @@ export const POST = async (req: NextRequest) => {
     if (!session?.user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
-    
+
     // Get user role for permission checks
     const userRole = session.user.role || "USER";
-    
+
     // Get request body which could contain:
     // - text query (converted from voice on client-side or directly typed)
     // - audio file or streaming data (would need to be processed by Whisper)
     // - optional parameters (date ranges, filters, etc.)
-    const {
-      query,
-      audioFile,
-      requestVoiceAuth = true,
-    } = await req.json();
+    const { query, audioFile, requestVoiceAuth = true } = await req.json();
     textQuery = query;
 
     // STEP 1: Handle voice authentication if requested
@@ -51,10 +48,8 @@ export const POST = async (req: NextRequest) => {
       const buffer = Buffer.from(audioFile, "base64");
       fs.writeFileSync(tempFilePath, buffer);
 
-      const { authenticated, transcription } = await verifyVoiceIdentityAndTranscribe(
-        session.user.id,
-        tempFilePath
-      );
+      const { authenticated, transcription } =
+        await verifyVoiceIdentityAndTranscribe(session.user.id, tempFilePath);
       // Clean up temp file
       fs.unlinkSync(tempFilePath);
 
@@ -91,7 +86,10 @@ export const POST = async (req: NextRequest) => {
     let userPermissionNote = null;
     if (userRole !== "ADMIN" && !isReadOnlyQuery(graphSqlQuery)) {
       return NextResponse.json(
-        { error: "You don't have permission to execute modification queries. Please try a query that only retrieves data." }, 
+        {
+          error:
+            "You don't have permission to execute modification queries. Please try a query that only retrieves data.",
+        },
         { status: 403 }
       );
     }
@@ -110,15 +108,18 @@ export const POST = async (req: NextRequest) => {
           successful: false,
           errorMessage: queryResults.data.error,
           executionTime: queryResults.executionTime,
-        }
+        },
       });
-    
-      return NextResponse.json({
-        error: queryResults.data.error,
-        queryId: errorHistory.id
-      }, { status: 400 });
+
+      return NextResponse.json(
+        {
+          error: queryResults.data.error,
+          queryId: errorHistory.id,
+        },
+        { status: 400 }
+      );
     }
-    
+
     // STEP 6: Save the query to history
     const queryHistory = await prisma.queryHistory.create({
       data: {
@@ -181,17 +182,20 @@ export const POST = async (req: NextRequest) => {
     let errorMessage = "Database query failed";
     if (err instanceof Error) {
       errorMessage = err.message;
-    } else if (typeof err === 'string') {
+    } else if (typeof err === "string") {
       errorMessage = err;
     }
 
-    return NextResponse.json({
-      query: { original: textQuery },
-      error: err instanceof Error ? err.message : 'Unknown error',
-      ...(err instanceof Prisma.PrismaClientKnownRequestError
-        ? { prismaError: err.meta }
-        : {})
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        query: { original: textQuery },
+        error: err instanceof Error ? err.message : "Unknown error",
+        ...(err instanceof Prisma.PrismaClientKnownRequestError
+          ? { prismaError: err.meta }
+          : {}),
+      },
+      { status: 500 }
+    );
   }
 };
 
@@ -215,26 +219,22 @@ async function verifyVoiceIdentityAndTranscribe(
 
     // Create a form with the audio file and user ID
     const form = new FormData();
-    form.append('file', fs.createReadStream(audioPath));
-    
+    form.append("file", fs.createReadStream(audioPath));
+
     // Use the numeric userId which was likely used during enrollment
-    form.append('user_id', user.userId.toString());
+    form.append("user_id", user.userId.toString());
 
     // Log the URL we're hitting
-    const apiUrl = process.env.VOICE_AUTH_API_URL || 'http://localhost:8000';
+    const apiUrl = process.env.VOICE_AUTH_API_URL || "http://localhost:8000";
     const verifyUrl = `${apiUrl}/verify`;
 
     // Verify with the speaker diarization model
     try {
-      const verificationResponse = await axios.post(
-        verifyUrl,
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-          },
-        }
-      );
+      const verificationResponse = await axios.post(verifyUrl, form, {
+        headers: {
+          ...form.getHeaders(),
+        },
+      });
 
       if (!verificationResponse.data.authenticated) {
         return { authenticated: false, transcription: "" };
@@ -261,7 +261,10 @@ async function verifyVoiceIdentityAndTranscribe(
 // Helper function to clean the response text
 function cleanResponseText(text: string): string {
   // Remove markdown code block syntax
-  return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return text
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
 }
 
 // Helper function to get database schema
@@ -275,7 +278,7 @@ async function getOrgDatabaseSchema() {
     `;
 
     const schema: any = {};
-    
+
     // For each table, get its columns
     for (const table of tables) {
       const columns = await orgPrisma.$queryRaw`
@@ -284,7 +287,7 @@ async function getOrgDatabaseSchema() {
         WHERE table_schema = 'public'
         AND table_name = ${table.table_name}
       `;
-      
+
       schema[table.table_name] = columns;
     }
 
@@ -298,7 +301,7 @@ async function getOrgDatabaseSchema() {
 // Process natural language to SQL using LLM
 async function processNaturalLanguageToSQL(
   query: string,
-  dbMetadata: any[]         
+  dbMetadata: any[]
 ): Promise<{
   graphSqlQuery: string;
   relatedQueries: any;
@@ -306,17 +309,28 @@ async function processNaturalLanguageToSQL(
 }> {
   try {
     console.log("Starting natural language to SQL processing...");
-    
+
     // Get the org database schema
     const orgSchema = await getOrgDatabaseSchema();
-    
+
     // Try using a different model name based on the available models
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash",
       generationConfig: {
         temperature: 0.2,
-      }
+      },
     });
+
+    // Format the schema information in a more structured way
+    const schemaInfo = dbMetadata.map((table) => ({
+      tableName: table.tableName,
+      description: table.description,
+      columns: table.columns.map((col) => ({
+        name: col.columnName,
+        type: col.dataType,
+        description: col.description,
+      })),
+    }));
 
     // Prepare the prompt with database schema and user query
     const prompt = `You are writing postgreSQL code to query/modify a company's database for visualization purposes. Given the database schema and user query, generate:
@@ -326,6 +340,12 @@ async function processNaturalLanguageToSQL(
 
         Database Schema: ${JSON.stringify(orgSchema)}
         User Query: ${query}
+
+        IMPORTANT: 
+        1. Only use columns that exist in the schema above
+        2. Do not reference any columns that are not listed in the schema
+        3. If the query requires columns that don't exist, suggest a modified query that uses available columns
+        4. For revenue-related queries, use the 'total_spent' column from the customers table instead
 
         STRICT DATA STRUCTURE REQUIREMENTS:
         - StackedGraph (stacked area):
@@ -386,7 +406,6 @@ async function processNaturalLanguageToSQL(
     console.log(prompt);
 
     try {
-      // Try the normal API call first
       const result = await model.generateContent(prompt);
       console.log("Received response from Gemini API");
       const response = result.response;
@@ -400,21 +419,84 @@ async function processNaturalLanguageToSQL(
       }
 
       const cleanedText = jsonMatch[0];
-      console.log("Cleaned response text:", cleanedText.substring(0, 200) + "...");
+      console.log(
+        "Cleaned response text:",
+        cleanedText.substring(0, 200) + "..."
+      );
       const parsedResponse = JSON.parse(cleanedText);
       console.log("Successfully parsed JSON response");
+
+      // Validate the generated SQL query against the schema
+      const normalizedQuery = parsedResponse.sqlQuery.toUpperCase();
+      const validColumns = new Set(
+        schemaInfo.flatMap((table) =>
+          table.columns.map((col) => col.name.toUpperCase())
+        )
+      );
+
+      // Check if the query references any invalid columns
+      const columnReferences = normalizedQuery.match(/\b\w+\b/g) || [];
+      const invalidColumns = columnReferences.filter(
+        (col) =>
+          !validColumns.has(col) &&
+          ![
+            "SELECT",
+            "FROM",
+            "WHERE",
+            "GROUP",
+            "BY",
+            "ORDER",
+            "HAVING",
+            "JOIN",
+            "INNER",
+            "LEFT",
+            "RIGHT",
+            "FULL",
+            "OUTER",
+            "ON",
+            "AND",
+            "OR",
+            "NOT",
+            "NULL",
+            "IS",
+            "IN",
+            "EXISTS",
+            "COUNT",
+            "SUM",
+            "AVG",
+            "MIN",
+            "MAX",
+            "AS",
+            "ASC",
+            "DESC",
+          ].includes(col)
+      );
+
+      if (invalidColumns.length > 0) {
+        throw new Error(
+          `Invalid column references: ${invalidColumns.join(", ")}`
+        );
+      }
+
       return {
         graphSqlQuery: parsedResponse.graphSqlQuery,
         relatedQueries: parsedResponse.relatedQueries,
         suggestedVisualization: parsedResponse.suggestedVisualization,
       };
     } catch (apiError) {
-      // Fallback to the older model if needed
-      console.log("First model failed, trying fallback model... api error : ", apiError);
-      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+      console.log(
+        "First model failed, trying fallback model... api error : ",
+        apiError
+      );
+      const fallbackModel = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash-lite",
+      });
       const fallbackResult = await fallbackModel.generateContent(prompt);
       const fallbackText = fallbackResult.response.text();
-      console.log("Fallback raw response:", fallbackText.substring(0, 200) + "...");
+      console.log(
+        "Fallback raw response:",
+        fallbackText.substring(0, 200) + "..."
+      );
 
       // Extract JSON from fallback response
       const fallbackJsonMatch = fallbackText.match(/\{[\s\S]*\}/);
@@ -423,9 +505,66 @@ async function processNaturalLanguageToSQL(
       }
 
       const cleanedFallbackText = fallbackJsonMatch[0];
-      console.log("Cleaned fallback text:", cleanedFallbackText.substring(0, 200) + "...");
+      console.log(
+        "Cleaned fallback text:",
+        cleanedFallbackText.substring(0, 200) + "..."
+      );
       const parsedFallback = JSON.parse(cleanedFallbackText);
       console.log("Successfully parsed fallback JSON response");
+
+      // Validate the fallback query as well
+      const normalizedFallbackQuery = parsedFallback.sqlQuery.toUpperCase();
+      const validColumns = new Set(
+        schemaInfo.flatMap((table) =>
+          table.columns.map((col) => col.name.toUpperCase())
+        )
+      );
+
+      const columnReferences = normalizedFallbackQuery.match(/\b\w+\b/g) || [];
+      const invalidColumns = columnReferences.filter(
+        (col) =>
+          !validColumns.has(col) &&
+          ![
+            "SELECT",
+            "FROM",
+            "WHERE",
+            "GROUP",
+            "BY",
+            "ORDER",
+            "HAVING",
+            "JOIN",
+            "INNER",
+            "LEFT",
+            "RIGHT",
+            "FULL",
+            "OUTER",
+            "ON",
+            "AND",
+            "OR",
+            "NOT",
+            "NULL",
+            "IS",
+            "IN",
+            "EXISTS",
+            "COUNT",
+            "SUM",
+            "AVG",
+            "MIN",
+            "MAX",
+            "AS",
+            "ASC",
+            "DESC",
+          ].includes(col)
+      );
+
+      if (invalidColumns.length > 0) {
+        throw new Error(
+          `Invalid column references in fallback query: ${invalidColumns.join(
+            ", "
+          )}`
+        );
+      }
+
       return {
         graphSqlQuery: parsedFallback.graphSqlQuery,
         relatedQueries: parsedFallback.relatedQueries,
@@ -514,14 +653,14 @@ function validateModificationQuery(query: string): void {
 
 // Execute SQL query against the org database
 async function executeQuery(
-  sqlQuery: string, 
+  sqlQuery: string,
   userRole: string
 ): Promise<{ data: any; executionTime: number }> {
   const startTime = Date.now();
 
   try {
-    if (typeof sqlQuery !== 'string') {
-      throw new Error('Invalid SQL query format');
+    if (typeof sqlQuery !== "string") {
+      throw new Error("Invalid SQL query format");
     }
     // Check if the query is read-only
     const isReadOnly = isReadOnlyQuery(sqlQuery);
@@ -529,7 +668,9 @@ async function executeQuery(
 
     // Regular users can only execute read-only queries
     if (userRole !== "ADMIN" && !isReadOnly) {
-      throw new Error("You don't have permission to modify the database. Only SELECT queries are allowed for your role.");
+      throw new Error(
+        "You don't have permission to modify the database. Only SELECT queries are allowed for your role."
+      );
     }
 
     // Perform validation based on user role
@@ -552,7 +693,11 @@ async function executeQuery(
         data: results,
         executionTime: Date.now() - startTime,
       };
-    } else if (normalizedQuery.startsWith("CREATE") || normalizedQuery.startsWith("ALTER") || normalizedQuery.startsWith("DROP")) {
+    } else if (
+      normalizedQuery.startsWith("CREATE") ||
+      normalizedQuery.startsWith("ALTER") ||
+      normalizedQuery.startsWith("DROP")
+    ) {
       // For DDL statements, use $executeRawUnsafe
       const result = await orgPrisma.$executeRawUnsafe(sqlQuery);
       return {
@@ -579,21 +724,22 @@ async function executeQuery(
     // Return a more user-friendly error message
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
-        data: { 
+        data: {
           error: error.message,
           code: error.code,
-          meta: error.meta 
+          meta: error.meta,
         },
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
 
     // Handle other error types
     return {
-      data: { 
-          error: error instanceof Error ? error.message : 'Unknown database error'
-        },
-      executionTime: Date.now() - startTime
+      data: {
+        error:
+          error instanceof Error ? error.message : "Unknown database error",
+      },
+      executionTime: Date.now() - startTime,
     };
   }
 }

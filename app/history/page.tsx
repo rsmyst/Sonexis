@@ -6,23 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Graph } from "@/components/BarGraph";
-import { BarChartInteractive } from "@/components/BarChartInteractive";
-import { BarGraph2Cat } from "@/components/BarGraph2Cat";
-import { Pie } from "@/components/Pie";
-import { AreaChart } from "@/components/AreaChart";
-import { StackedGraph } from "@/components/StackedGraph";
+import { Chart } from "@/components/Chart";
 
 interface QueryResult {
   columns: string[];
   rows: Record<string, string | number>[];
-  chartType?:
-    | "bar"
-    | "pie"
-    | "area"
-    | "stacked"
-    | "bar-interactive"
-    | "bar-2cat";
+  chartType?: "bar" | "pie" | "donut" | "line" | "area";
   chartConfig?: {
     xAxisKey?: string;
     yAxisKey?: string;
@@ -49,7 +38,7 @@ interface QueryHistory {
     relatedQueries: {
       description: string;
       sql: string;
-      returned_data: any;
+      returned_data: Record<string, unknown>;
     }[];
     suggestedVisualization: {
       chartType: string;
@@ -68,6 +57,7 @@ export default function QueryHistoryPage() {
   const { data: session } = useSession();
   const [history, setHistory] = useState<QueryHistory[]>([]);
   const [selectedQuery, setSelectedQuery] = useState<QueryHistory | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -77,6 +67,7 @@ export default function QueryHistoryPage() {
 
   const fetchHistory = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch(
         `/api/query-history/user/${session?.user?.id}`
       );
@@ -87,6 +78,8 @@ export default function QueryHistoryPage() {
     } catch (err) {
       console.error("Error fetching history:", err);
       toast.error("Failed to fetch query history");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -102,80 +95,38 @@ export default function QueryHistoryPage() {
     if (!query.results?.chartType || !query.results?.chartConfig) return null;
 
     const { chartType, chartConfig, rows } = query.results;
-    const {
-      xAxisKey,
-      yAxisKey,
-      yAxisKeys,
-      valueKey,
-      nameKey,
-      dateFormat,
-      title,
-      description,
-    } = chartConfig;
+    const { xAxisKey, yAxisKey, yAxisKeys, dateFormat, title, description } =
+      chartConfig;
 
-    switch (chartType) {
-      case "bar":
-        return (
-          <Graph
-            data={rows}
-            title={title || "Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-          />
-        );
-      case "bar-interactive":
-        return (
-          <BarChartInteractive
-            data={rows}
-            title={title || "Interactive Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKeys={yAxisKeys || []}
-            dateFormat={dateFormat}
-          />
-        );
-      case "bar-2cat":
-        return (
-          <BarGraph2Cat
-            data={rows}
-            title={title || "2 Category Bar Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-          />
-        );
-      case "pie":
-        return (
-          <Pie
-            data={rows}
-            title={title || "Pie Chart"}
-            description={description || ""}
-            valueKey={valueKey || ""}
-            nameKey={nameKey || ""}
-          />
-        );
-      case "area":
-        return (
-          <AreaChart
-            data={rows}
-            title={title || "Area Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKey={yAxisKey || ""}
-          />
-        );
-      case "stacked":
-        return (
-          <StackedGraph
-            data={rows}
-            title={title || "Stacked Chart"}
-            description={description || ""}
-            xAxisKey={xAxisKey || ""}
-            yAxisKeys={yAxisKeys || []}
-          />
-        );
-      default:
-        return null;
-    }
+    return (
+      <Chart
+        data={rows}
+        xAxis={{
+          key: xAxisKey || "",
+          label: "X-Axis",
+          formatter: (value) => {
+            if (dateFormat) {
+              return new Date(value as string).toLocaleDateString();
+            }
+            return String(value);
+          },
+        }}
+        yAxis={{
+          key: yAxisKey || "",
+          label: "Y-Axis",
+          formatter: (value) => {
+            if (typeof value === "number") {
+              return value.toLocaleString();
+            }
+            return String(value);
+          },
+        }}
+        title={title || "Chart"}
+        description={description || ""}
+        chartType={chartType}
+        yAxisKeys={yAxisKeys}
+      />
+    );
   };
 
   return (
@@ -185,60 +136,76 @@ export default function QueryHistoryPage() {
           <CardTitle>Query History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {history.map((query) => (
-              <Card key={query.id}>
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
+          {isLoading ? (
+            <div className="min-h-[200px] flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-[#bfff00] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="min-h-[200px] flex items-center justify-center">
+              <p className="text-gray-500 text-lg">
+                No query history to display
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {history.map((query) => (
+                <Card key={query.id}>
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">Natural Language Query:</p>
+                          <p className="text-sm text-gray-500">
+                            {query.userQuery}
+                          </p>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(query.createdAt)}
+                        </div>
+                      </div>
                       <div>
-                        <p className="font-medium">Natural Language Query:</p>
+                        <p className="font-medium">SQL Query:</p>
                         <p className="text-sm text-gray-500">
-                          {query.userQuery}
+                          {query.sqlQuery}
                         </p>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(query.createdAt)}
+                      <div className="flex justify-between items-center">
+                        <div>
+                          {query.executionTime && (
+                            <p className="text-sm text-gray-500">
+                              Execution Time: {query.executionTime}ms
+                            </p>
+                          )}
+                          {!query.successful && (
+                            <p className="text-sm text-red-500">
+                              Error: {query.errorMessage}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleShowResults(query)}
+                          >
+                            Show Results
+                          </Button>
+                          {query.visualizationData && (
+                            <Link
+                              href={`/history/visualization?id=${query.id}`}
+                            >
+                              <Button variant="outline">
+                                View Visualization
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="font-medium">SQL Query:</p>
-                      <p className="text-sm text-gray-500">{query.sqlQuery}</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        {query.executionTime && (
-                          <p className="text-sm text-gray-500">
-                            Execution Time: {query.executionTime}ms
-                          </p>
-                        )}
-                        {!query.successful && (
-                          <p className="text-sm text-red-500">
-                            Error: {query.errorMessage}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handleShowResults(query)}
-                        >
-                          Show Results
-                        </Button>
-                        {query.visualizationData && (
-                          <Link href={`/history/visualization?id=${query.id}`}>
-                            <Button variant="outline">
-                              View Visualization
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
