@@ -34,7 +34,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 rounded-lg bg-[#241a13] shadow-lg">
+    <div className="w-full max-w-md mx-auto p-6 bg-[#241a13] shadow-[6px_6px_0px_0px_rgba(191,255,0,1)]">
       <h2 className="text-2xl font-bold mb-6 text-center theme-text-accent">
         Welcome Back
       </h2>
@@ -53,7 +53,7 @@ export function LoginForm() {
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
             placeholder="Enter your Employee ID"
-            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
+            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60 shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
             required
           />
         </div>
@@ -71,7 +71,7 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
-            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60"
+            className="form-input font-jaro bg-[#A49694] text-[#021013] placeholder:text-[#021013]/60 shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
             required
           />
         </div>
@@ -79,7 +79,7 @@ export function LoginForm() {
         <div className="pt-2">
           <button
             type="submit"
-            className="btn-primary w-full"
+            className="btn-primary w-full transition-all duration-300 hover:shadow-[4px_4px_0px_0px_rgba(191,255,0,1)] hover:-translate-y-0.5"
             disabled={isLoading}
           >
             {isLoading ? "Logging in..." : "Log In"}

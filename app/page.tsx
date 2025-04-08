@@ -139,12 +139,21 @@ export default function Home() {
         <div className="mb-8 flex flex-col items-center">
           <button
             onClick={isRecording ? stopRecording : startRecording}
-            className={`p-4 rounded-full ${
-              isRecording ? "bg-red-500 hover:bg-red-600" : ""
-            } transition-colors`}
+            className={`p-4 rounded-full transition-all duration-300 transform hover:scale-110 active:scale-95 ${
+              isRecording
+                ? "bg-[#bfff00]/90 shadow-[0_0_20px_rgba(191,255,0,0.3)]"
+                : "bg-transparent hover:bg-[#bfff00]/10"
+            }`}
             aria-label={isRecording ? "Stop recording" : "Start recording"}
           >
-            <IconMicrophoneFilled size={48} className="text-[#bfff00]" />
+            <IconMicrophoneFilled
+              size={48}
+              className={`transition-all duration-300 ${
+                isRecording
+                  ? "text-[#ff00ff] animate-pulse"
+                  : "text-[#00e1ff] hover:text-[#ff00ff]"
+              }`}
+            />
           </button>
           {recordingStatus && (
             <p className="mt-4 text-sm text-[#bfff00]/80">{recordingStatus}</p>
@@ -157,7 +166,7 @@ export default function Home() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Or type your query here... (Press Enter to submit)"
-            className="w-full px-4 py-2 rounded-lg bg-transparent border-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:ring-2 focus:ring-[#00e1ff]"
+            className="w-full px-4 py-2 bg-transparent border-b-2 border-[#00e1ff] text-[#bfff00] placeholder:text-[#bfff00]/60 focus:outline-none focus:border-[#ff00ff] transition-colors duration-300"
           />
         </form>
       </div>

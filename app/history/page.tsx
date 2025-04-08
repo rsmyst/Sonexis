@@ -5,10 +5,34 @@ import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Graph } from "@/components/BarGraph";
+import { BarChartInteractive } from "@/components/BarChartInteractive";
+import { BarGraph2Cat } from "@/components/BarGraph2Cat";
+import { Pie } from "@/components/Pie";
+import { AreaChart } from "@/components/AreaChart";
+import { StackedGraph } from "@/components/StackedGraph";
 
 interface QueryResult {
   columns: string[];
-  rows: any[];
+  rows: Record<string, string | number>[];
+  chartType?:
+    | "bar"
+    | "pie"
+    | "area"
+    | "stacked"
+    | "bar-interactive"
+    | "bar-2cat";
+  chartConfig?: {
+    xAxisKey?: string;
+    yAxisKey?: string;
+    yAxisKeys?: string[];
+    valueKey?: string;
+    nameKey?: string;
+    dateFormat?: string;
+    title?: string;
+    description?: string;
+  };
 }
 
 interface QueryHistory {
@@ -20,6 +44,24 @@ interface QueryHistory {
   errorMessage: string | null;
   createdAt: string;
   results: QueryResult | null;
+  visualizationData?: {
+    graphSqlQuery: string;
+    relatedQueries: {
+      description: string;
+      sql: string;
+      returned_data: any;
+    }[];
+    suggestedVisualization: {
+      chartType: string;
+      chartOptions: {
+        xAxisKey: string;
+        yAxisKeys: string[];
+        dateFormat: string;
+      };
+      title: string;
+      description: string;
+    };
+  };
 }
 
 export default function QueryHistoryPage() {
@@ -54,6 +96,86 @@ export default function QueryHistoryPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const renderVisualization = (query: QueryHistory) => {
+    if (!query.results?.chartType || !query.results?.chartConfig) return null;
+
+    const { chartType, chartConfig, rows } = query.results;
+    const {
+      xAxisKey,
+      yAxisKey,
+      yAxisKeys,
+      valueKey,
+      nameKey,
+      dateFormat,
+      title,
+      description,
+    } = chartConfig;
+
+    switch (chartType) {
+      case "bar":
+        return (
+          <Graph
+            data={rows}
+            title={title || "Bar Chart"}
+            description={description || ""}
+            xAxisKey={xAxisKey || ""}
+          />
+        );
+      case "bar-interactive":
+        return (
+          <BarChartInteractive
+            data={rows}
+            title={title || "Interactive Bar Chart"}
+            description={description || ""}
+            xAxisKey={xAxisKey || ""}
+            yAxisKeys={yAxisKeys || []}
+            dateFormat={dateFormat}
+          />
+        );
+      case "bar-2cat":
+        return (
+          <BarGraph2Cat
+            data={rows}
+            title={title || "2 Category Bar Chart"}
+            description={description || ""}
+            xAxisKey={xAxisKey || ""}
+          />
+        );
+      case "pie":
+        return (
+          <Pie
+            data={rows}
+            title={title || "Pie Chart"}
+            description={description || ""}
+            valueKey={valueKey || ""}
+            nameKey={nameKey || ""}
+          />
+        );
+      case "area":
+        return (
+          <AreaChart
+            data={rows}
+            title={title || "Area Chart"}
+            description={description || ""}
+            xAxisKey={xAxisKey || ""}
+            yAxisKey={yAxisKey || ""}
+          />
+        );
+      case "stacked":
+        return (
+          <StackedGraph
+            data={rows}
+            title={title || "Stacked Chart"}
+            description={description || ""}
+            xAxisKey={xAxisKey || ""}
+            yAxisKeys={yAxisKeys || []}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -96,12 +218,21 @@ export default function QueryHistoryPage() {
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleShowResults(query)}
-                      >
-                        Show Results
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleShowResults(query)}
+                        >
+                          Show Results
+                        </Button>
+                        {query.visualizationData && (
+                          <Link href={`/history/visualization?id=${query.id}`}>
+                            <Button variant="outline">
+                              View Visualization
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -111,15 +242,47 @@ export default function QueryHistoryPage() {
         </CardContent>
       </Card>
 
-      {selectedQuery && (
+      {selectedQuery?.results && (
         <Card className="mt-4">
           <CardHeader>
             <CardTitle>Query Results</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="bg-gray-100 p-4 rounded-md overflow-auto">
-              {JSON.stringify(selectedQuery.results, null, 2)}
-            </pre>
+            <>
+              {renderVisualization(selectedQuery)}
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {selectedQuery.results.columns.map((column) => (
+                        <th
+                          key={column}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedQuery.results.rows.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {selectedQuery?.results?.columns.map((column) => (
+                          <td
+                            key={column}
+                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                          >
+                            {typeof row[column] === "number"
+                              ? `$${row[column].toLocaleString()}`
+                              : row[column]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           </CardContent>
         </Card>
       )}

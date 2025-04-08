@@ -363,13 +363,13 @@ export default function AdminControls() {
                 {users.map((user) => ( 
                   <Card
                     key={user.id}
-                    className="cursor-pointer hover:bg-zinc-900 transition-colors"
+                    className="cursor-pointer hover:bg-zinc-900 transition-colors shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
                     onClick={() => handleUserClick(user)}
                   >
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-4">
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                          <div className="relative w-10 h-10 overflow-hidden">
                             {user.profilePicture ? (
                               <img
                                 src={user.profilePicture}

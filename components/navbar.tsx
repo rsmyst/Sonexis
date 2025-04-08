@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import React, { useRef, useState } from "react";
 import Image from "next/image";
+import { BackgroundGradient } from "./ui/gradient";
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -88,9 +89,6 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
     <motion.div
       animate={{
         backdropFilter: visible ? "blur(10px)" : "none",
-        boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
-          : "none",
         width: visible ? "40%" : "100%",
         y: visible ? 20 : 0,
       }}
@@ -103,12 +101,17 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         minWidth: "800px",
       }}
       className={cn(
-        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent",
-        visible && "bg-[#bbf000]/80 dark:bg-[#bbf000]/80",
+        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start lg:flex",
         className
       )}
     >
-      {children}
+      <BackgroundGradient
+        animate={visible}
+        className="flex w-full flex-row items-center justify-between px-4 py-2"
+        containerClassName="w-full opacity-95 hover:opacity-100"
+      >
+        {children}
+      </BackgroundGradient>
     </motion.div>
   );
 };
@@ -128,7 +131,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         <Link
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
-          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300"
+          className="relative px-5 py-2 text-neutral-900 dark:text-neutral-300 text-lg"
           key={`link-${idx}`}
           href={item.link}
         >
@@ -205,7 +208,9 @@ export const MobileNavMenu = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={cn(
-            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-lg bg-white px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-neutral-950",
+            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 bg-white px-4 py-8",
+            "shadow-[6px_6px_0px_0px_rgba(191,255,0,1)]",
+            "dark:bg-neutral-950",
             className
           )}
         >
@@ -265,15 +270,15 @@ export const NavbarButton = ({
   | React.ComponentPropsWithoutRef<"button">
 )) => {
   const baseStyles =
-    "px-4 py-2 rounded-md bg-white button bg-white text-black text-sm font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center";
+    "px-4 py-2 bg-white button bg-white text-black text-sm font-bold relative cursor-pointer transition-all duration-300 inline-block text-center";
 
   const variantStyles = {
     primary:
-      "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
+      "hover:shadow-[4px_4px_0px_0px_rgba(191,255,0,1)] hover:-translate-y-0.5",
     secondary: "bg-transparent shadow-none dark:text-white",
-    dark: "bg-black text-white shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
+    dark: "bg-black text-white hover:shadow-[4px_4px_0px_0px_rgba(191,255,0,1)] hover:-translate-y-0.5",
     gradient:
-      "bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",
+      "bg-gradient-to-b from-blue-500 to-blue-700 text-white hover:shadow-[4px_4px_0px_0px_rgba(191,255,0,1)] hover:-translate-y-0.5",
   };
 
   return (
