@@ -360,11 +360,18 @@ export default function AdminControls() {
             <div>
               <Label>User List</Label>
               <div className="mt-4 space-y-4">
-                {users.map((user) => ( 
+                {users.map((user) => (
                   <Card
                     key={user.id}
                     className="cursor-pointer hover:bg-zinc-900 transition-colors shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
-                    onClick={() => handleUserClick(user)}
+                    onClick={(e) => {
+                      // Check if the click was on the switch or its label
+                      const target = e.target as HTMLElement;
+                      if (target.closest(".switch-container")) {
+                        return;
+                      }
+                      handleUserClick(user);
+                    }}
                   >
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-center">
@@ -394,7 +401,7 @@ export default function AdminControls() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 switch-container">
                             <Switch
                               key={`switch-${user.id}`}
                               checked={user.role === "ADMIN"}

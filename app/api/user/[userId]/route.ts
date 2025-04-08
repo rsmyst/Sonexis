@@ -29,6 +29,7 @@ export const GET = async (
         role: true,
         password: false,
         settings: true,
+        profilePicture: true,
       },
     });
 
@@ -36,9 +37,7 @@ export const GET = async (
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(user);
   } catch (err) {
     console.log(err);
     return NextResponse.json({ error: "error fetching user" }, { status: 500 });
@@ -64,8 +63,6 @@ export const PATCH = async (
 
     const { name, password, role, voiceEnabled, autoSuggestEnabled } =
       await req.json();
-    const { name, password, role, voiceEnabled, autoSuggestEnabled } =
-      await req.json();
     const { userId } = params;
 
     console.log("PATCH request received:", {
@@ -84,18 +81,6 @@ export const PATCH = async (
     });
 
     // Only include fields that are provided in the update
-    const updateData: {
-      name?: string;
-      password?: string;
-      role?: "USER" | "ADMIN";
-      settings?: {
-        update: {
-          voiceEnabled?: boolean;
-          autoSuggestEnabled?: boolean;
-        };
-      };
-    } = {};
-
     const updateData: {
       name?: string;
       password?: string;
@@ -154,11 +139,20 @@ export const PATCH = async (
     const response = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      include: {
-        settings: true,
-      },
-      include: {
-        settings: true,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        profilePicture: true,
+        settings: {
+          select: {
+            id: true,
+            userId: true,
+            language: true,
+            voiceEnabled: true,
+            autoSuggestEnabled: true,
+          },
+        },
       },
     });
 
