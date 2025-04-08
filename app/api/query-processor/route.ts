@@ -11,11 +11,6 @@ import os from "os";
 
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-// Local Whisper API URL - you need to run the Whisper API server locally
-const WHISPER_LOCAL_API_URL =
-  process.env.WHISPER_LOCAL_API_URL || "http://localhost:9000";
-
 // This is the main endpoint for processing natural language to SQL
 export const POST = async (req: NextRequest) => {
   let textQuery: string | undefined;
@@ -31,9 +26,9 @@ export const POST = async (req: NextRequest) => {
     const {
       query,
       audioFile,
-      parameters,
-      requestVoiceAuth = false,
+      requestVoiceAuth = true,
     } = await req.json();
+    textQuery = query;
 
     // STEP 1: Handle voice authentication if requested
     if (requestVoiceAuth) {
@@ -50,55 +45,21 @@ export const POST = async (req: NextRequest) => {
       const buffer = Buffer.from(audioFile, "base64");
       fs.writeFileSync(tempFilePath, buffer);
 
-      const isAuthenticated = await verifyVoiceIdentity(
+      const { authenticated, transcription } = await verifyVoiceIdentityAndTranscribe(
         session.user.id,
         tempFilePath
       );
-
       // Clean up temp file
       fs.unlinkSync(tempFilePath);
 
-      if (!isAuthenticated) {
+      if (!authenticated) {
         return NextResponse.json(
           { error: "voice authentication failed" },
           { status: 401 }
         );
       }
-    }
-
-    // STEP 2: Process speech to text if audio file is provided
-    let textQuery = query;
-    if (audioFile && !textQuery) {
-      try {
-        // Save audio to temporary file
-        const tempDir = os.tmpdir();
-        const tempFilePath = path.join(tempDir, `stt-${Date.now()}.wav`);
-        const buffer = Buffer.from(audioFile, "base64");
-        fs.writeFileSync(tempFilePath, buffer);
-
-        // Process audio to text using local Whisper API
-        textQuery = await processAudioToText(tempFilePath);
-        console.log("Processed audio to text:", textQuery);
-
-        // Clean up temp file
-        fs.unlinkSync(tempFilePath);
-      } catch (error) {
-        console.error("Speech-to-text processing error:", error);
-        return NextResponse.json(
-          {
-            error: "Failed to process speech to text",
-            details: error instanceof Error ? error.message : String(error),
-          },
-          { status: 400 }
-        );
-      }
-
-      if (!textQuery) {
-        return NextResponse.json(
-          { error: "failed to process speech to text" },
-          { status: 400 }
-        );
-      }
+      // Use the transcription from voice verification
+      textQuery = transcription;
     }
 
     if (!textQuery) {
@@ -118,7 +79,7 @@ export const POST = async (req: NextRequest) => {
     // STEP 4: Process natural language to SQL using LLM (Gemini or other)
     // This would connect to your LLM service
     const { sqlQuery, relatedQueries, suggestedVisualization } =
-      await processNaturalLanguageToSQL(textQuery, dbMetadata, parameters);
+      await processNaturalLanguageToSQL(textQuery, dbMetadata);
 
     // STEP 5: Execute the SQL query against the database
     // This is a placeholder - in production, you would use a secure method to execute queries
@@ -192,10 +153,10 @@ export const POST = async (req: NextRequest) => {
 // Helper functions (would be implemented in separate files in production)
 
 // Voice identity verification using the external diarization service
-async function verifyVoiceIdentity(
+async function verifyVoiceIdentityAndTranscribe(
   userId: string,
   audioPath: string
-): Promise<boolean> {
+): Promise<{ authenticated: boolean; transcription: string }> {
   try {
     // Get user info to map our internal ID to the userID used by the voice system
     const user = await prisma.user.findUnique({
@@ -204,78 +165,78 @@ async function verifyVoiceIdentity(
 
     if (!user) {
       console.log("User not found");
-      return false;
+      return { authenticated: false, transcription: "" };
     }
+
+    // Create a form with the audio file and user ID
+    const form = new FormData();
+    form.append('file', fs.createReadStream(audioPath));
+    
+    // Use the numeric userId which was likely used during enrollment
+    form.append('user_id', user.userId.toString());
+
+    // Log the URL we're hitting
+    const apiUrl = process.env.VOICE_AUTH_API_URL || 'http://localhost:8000';
+    const verifyUrl = `${apiUrl}/verify`;
 
     // Verify with the speaker diarization model
     try {
       const verificationResponse = await axios.post(
-        `${process.env.VOICE_AUTH_API_URL}/verify`,
+        verifyUrl,
+        form,
         {
-          user_id: user.userId.toString(), // Convert to string for the API
-          audio_path: audioPath,
+          headers: {
+            ...form.getHeaders(),
+          },
         }
       );
 
+      if (!verificationResponse.data.authenticated) {
+        return { authenticated: false, transcription: "" };
+      }
+
+      const transcription = verificationResponse.data.transcription;
       console.log("Voice verification result:", verificationResponse.data);
-      return verificationResponse.data.authenticated;
+      return { authenticated: true, transcription };
     } catch (error) {
       console.error("Voice verification API error:", error);
-      return false;
+      // Add more detailed error logging
+      if (axios.isAxiosError(error) && error.response) {
+        console.error(`Status: ${error.response.status}`);
+        console.error(`Error data:`, error.response.data);
+      }
+      return { authenticated: false, transcription: "" };
     }
   } catch (error) {
     console.error("Voice verification error:", error);
-    return false;
+    return { authenticated: false, transcription: "" };
   }
 }
 
-// Process audio to text using local Whisper API
-async function processAudioToText(audioPath: string): Promise<string> {
-  try {
-    // Create form data with the audio file
-    const formData = new FormData();
-    formData.append("audio_file", fs.createReadStream(audioPath));
-
-    // Send to local Whisper API
-    const response = await axios.post(
-      `${WHISPER_LOCAL_API_URL}/transcribe`,
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders(),
-          Accept: "application/json",
-        },
-      }
-    );
-
-    if (response.status !== 200) {
-      throw new Error(`Local Whisper API returned status ${response.status}`);
-    }
-
-    const transcription = response.data.text;
-    console.log("Transcription successful:", transcription);
-    return transcription;
-  } catch (error: any) {
-    console.error(
-      "Error in audio transcription:",
-      error.response?.data?.message || error.message
-    );
-    throw new Error(`Failed to process audio to text: ${error.message}`);
-  }
+// Helper function to clean the response text
+function cleanResponseText(text: string): string {
+  // Remove markdown code block syntax
+  return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 }
 
 // Process natural language to SQL using LLM
 async function processNaturalLanguageToSQL(
   query: string,
-  dbMetadata: any[],
-  parameters?: any
+  dbMetadata: any[]         
 ): Promise<{
   sqlQuery: string;
   relatedQueries: any;
   suggestedVisualization?: any;
 }> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    console.log("Starting natural language to SQL processing...");
+    // Try using a different model name based on the available models
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",  // Updated model name
+      generationConfig: {
+        temperature: 0.2,
+      }
+    });
 
     // Prepare the prompt with database schema and user query
     const prompt = `Given the following database schema and user query, generate an appropriate SQL query.
@@ -285,8 +246,6 @@ async function processNaturalLanguageToSQL(
         ${JSON.stringify(dbMetadata, null, 2)}
 
         User Query: ${query}
-
-        Parameters: ${JSON.stringify(parameters || {})}
 
         Please provide:
         1. A SQL query that answers the user's question
@@ -314,20 +273,48 @@ async function processNaturalLanguageToSQL(
             }
         }`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    console.log("Sending prompt to Gemini API...");
 
-    // Parse the JSON response
-    const parsedResponse = JSON.parse(text);
+    try {
+      // Try the normal API call first
+      const result = await model.generateContent(prompt);
+      console.log("Received response from Gemini API");
+      const response = result.response;
+      const text = response.text();
+      console.log("Raw response text:", text);
 
-    return {
-      sqlQuery: parsedResponse.sqlQuery,
-      relatedQueries: parsedResponse.relatedQueries,
-      suggestedVisualization: parsedResponse.suggestedVisualization,
-    };
+      // Clean and parse the JSON response
+      const cleanedText = cleanResponseText(text);
+      console.log("Cleaned response text:", cleanedText.substring(0, 200) + "...");
+      const parsedResponse = JSON.parse(cleanedText);
+      console.log("Successfully parsed JSON response");
+      return {
+        sqlQuery: parsedResponse.sqlQuery,
+        relatedQueries: parsedResponse.relatedQueries,
+        suggestedVisualization: parsedResponse.suggestedVisualization,
+      };
+    } catch (apiError) {
+      // Fallback to the older model if needed
+      console.log("First model failed, trying fallback model... api error : ", apiError);
+      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+      const fallbackResult = await fallbackModel.generateContent(prompt);
+      const fallbackText = fallbackResult.response.text();
+      console.log("Fallback raw response:", fallbackText.substring(0, 200) + "...");
+
+      // Clean and parse the JSON response from fallback
+      const cleanedFallbackText = cleanResponseText(fallbackText);
+      console.log("Cleaned fallback text:", cleanedFallbackText.substring(0, 200) + "...");
+      const parsedFallback = JSON.parse(cleanedFallbackText);
+      console.log("Successfully parsed fallback JSON response");
+      return {
+        sqlQuery: parsedFallback.sqlQuery,
+        relatedQueries: parsedFallback.relatedQueries,
+        suggestedVisualization: parsedFallback.suggestedVisualization,
+      };
+    }
   } catch (error) {
     console.error("Error generating SQL with Gemini:", error);
+    console.error("Error details:", JSON.stringify(error, null, 2));
     throw new Error("Failed to generate SQL query");
   }
 }

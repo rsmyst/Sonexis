@@ -50,55 +50,39 @@ export default function Home() {
 
   const processAudio = async (audioBlob: Blob) => {
     try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob);
+      const base64Audio = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          // Get the base64 string without the data URL prefix
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.readAsDataURL(audioBlob);
+      });
 
       const response = await fetch("/api/query-processor", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audioFile: base64Audio,
+          requestVoiceAuth: true
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Authentication failed");
+        throw new Error(`Request failed with status ${response.status}`);
       }
 
       const data = await response.json();
-
-      if (data.authenticated && data.confidence >= 0.7) {
-        // Proceed with STT
-        const sttResponse = await fetch("/api/stt", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!sttResponse.ok) {
-          throw new Error("STT processing failed");
-        }
-
-        const sttData = await sttResponse.json();
-        setQuery(sttData.text);
-
-        // Send to Gemini with schema
-        const geminiResponse = await fetch("/api/gemini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text: sttData.text,
-            schema: sttData.schema,
-          }),
-        });
-
-        if (!geminiResponse.ok) {
-          throw new Error("Gemini processing failed");
-        }
-
-        const { sqlQuery, explanation } = await geminiResponse.json();
-        setQuery(sqlQuery);
-        setRecordingStatus(`Processing complete: ${explanation}`);
+      if (data.error) {
+        setRecordingStatus(`Error: ${data.error}`);
       } else {
-        setRecordingStatus("Authentication failed or confidence too low");
+        setQuery(data.query?.original || "");
+        console.log(JSON.stringify(data));
+        setRecordingStatus("Query processed successfully");
       }
     } catch (error) {
       console.error("Error processing audio:", error);
