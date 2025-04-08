@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { IconMicrophone, IconEdit, IconTrash } from "@tabler/icons-react";
+import {
+  IconMicrophone,
+  IconEdit,
+  IconTrash,
+  IconUpload,
+} from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +28,7 @@ interface User {
   name: string;
   role: "USER" | "ADMIN";
   createdAt: string;
+  profilePicture?: string;
 }
 
 export default function AdminControls() {
@@ -40,6 +46,7 @@ export default function AdminControls() {
   const [editRole, setEditRole] = useState<"USER" | "ADMIN">("USER");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -259,6 +266,57 @@ export default function AdminControls() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUser) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch(
+        `/api/user/${selectedUser.id}/profile-picture`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (response.ok) {
+        await fetchUsers();
+        toast.success("Profile picture updated successfully");
+      } else {
+        toast.error("Failed to update profile picture");
+      }
+    } catch (err) {
+      console.error("Error uploading profile picture:", err);
+      toast.error("Failed to update profile picture");
+    }
+  };
+
+  const handleDeleteProfilePicture = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(
+        `/api/user/${selectedUser.id}/profile-picture`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        await fetchUsers();
+        toast.success("Profile picture removed successfully");
+      } else {
+        toast.error("Failed to remove profile picture");
+      }
+    } catch (err) {
+      console.error("Error removing profile picture:", err);
+      toast.error("Failed to remove profile picture");
+    }
+  };
+
   return (
     <div className="container mx-auto py-25">
       <Card>
@@ -302,7 +360,7 @@ export default function AdminControls() {
             <div>
               <Label>User List</Label>
               <div className="mt-4 space-y-4">
-                {users.map((user) => (
+                {users.map((user) => ( 
                   <Card
                     key={user.id}
                     className="cursor-pointer hover:bg-zinc-900 transition-colors"
@@ -310,11 +368,30 @@ export default function AdminControls() {
                   >
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-gray-500">
-                            Created: {formatDate(user.createdAt)}
-                          </p>
+                        <div className="flex items-center space-x-4">
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                            {user.profilePicture ? (
+                              <img
+                                src={user.profilePicture}
+                                alt={user.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                <span className="text-lg text-zinc-600">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-zinc-100">
+                              {user.name}
+                            </p>
+                            <p className="text-sm text-zinc-400">
+                              Created: {formatDate(user.createdAt)}
+                            </p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
@@ -345,6 +422,49 @@ export default function AdminControls() {
             <DialogTitle>User Details</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative w-32 h-32 rounded-full overflow-hidden">
+                {selectedUser?.profilePicture ? (
+                  <img
+                    src={selectedUser.profilePicture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                    <span className="text-4xl text-zinc-600">
+                      {selectedUser?.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <IconUpload className="mr-2 h-4 w-4" />
+                  Upload
+                </Button>
+                {selectedUser?.profilePicture && (
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteProfilePicture}
+                  >
+                    <IconTrash className="mr-2 h-4 w-4" />
+                    Remove
+                  </Button>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Name</Label>
               {isEditMode ? (
