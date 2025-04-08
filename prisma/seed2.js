@@ -8,7 +8,7 @@ dotenv.config();
 
 // Database connection configuration for Neon
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.ORG_DB_URI,
   ssl: {
     rejectUnauthorized: false,
   },
@@ -29,6 +29,9 @@ async function seedDatabase() {
     await seedEmployees(client);
     await seedInventory(client);
     await seedCustomers(client);
+    await seedOrders(client);
+    await seedSales(client);
+    await seedEmployeeBenefits(client);
     console.log("Database seeding completed successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
@@ -56,6 +59,7 @@ async function createTables(client) {
       employee_id SERIAL PRIMARY KEY,
       first_name VARCHAR(50) NOT NULL,
       last_name VARCHAR(50) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL,
       department VARCHAR(50) NOT NULL,
       position VARCHAR(50) NOT NULL,
       hire_date DATE NOT NULL,
@@ -98,8 +102,58 @@ async function createTables(client) {
     )
   `);
 
+  // Create orders table
+  await client.query(`
+    CREATE TABLE orders (
+      order_id SERIAL PRIMARY KEY,
+      customer_id INTEGER REFERENCES customers(customer_id),
+      order_date DATE NOT NULL,
+      total_amount DECIMAL(10, 2) NOT NULL,
+      status VARCHAR(20) NOT NULL,
+      payment_method VARCHAR(50) NOT NULL,
+      shipping_address TEXT NOT NULL,
+      tracking_number VARCHAR(50),
+      estimated_delivery DATE
+    )
+  `);
+
+  // Create sales table
+  await client.query(`
+    CREATE TABLE sales (
+      sale_id SERIAL PRIMARY KEY,
+      employee_id INTEGER REFERENCES employees(employee_id),
+      order_id INTEGER REFERENCES orders(order_id),
+      product_id INTEGER REFERENCES inventory(product_id),
+      quantity INTEGER NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      sale_date DATE NOT NULL,
+      commission_amount DECIMAL(10, 2),
+      profit DECIMAL(10, 2) NOT NULL,
+      customer_rating INTEGER CHECK (customer_rating >= 1 AND customer_rating <= 5)
+    )
+  `);
+
+  // Create employee_benefits table
+  await client.query(`
+    CREATE TABLE employee_benefits (
+      benefit_id SERIAL PRIMARY KEY,
+      employee_id INTEGER REFERENCES employees(employee_id),
+      health_insurance_plan VARCHAR(50) NOT NULL,
+      health_insurance_cost DECIMAL(10, 2) NOT NULL,
+      retirement_contribution_pct DECIMAL(5, 2) NOT NULL,
+      paid_time_off_days INTEGER NOT NULL,
+      sick_leave_days INTEGER NOT NULL,
+      tuition_reimbursement DECIMAL(10, 2),
+      life_insurance_coverage DECIMAL(10, 2) NOT NULL,
+      dental_coverage BOOLEAN DEFAULT false,
+      vision_coverage BOOLEAN DEFAULT false,
+      wellness_stipend DECIMAL(10, 2)
+    )
+  `);
+
   console.log("Tables created successfully");
 }
+
 async function seedEmployees(client) {
   const departments = [
     "Sales",
@@ -150,7 +204,7 @@ async function seedEmployees(client) {
     ],
   };
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 100; i++) {
     const department =
       departments[Math.floor(Math.random() * departments.length)];
     const position =
@@ -175,6 +229,7 @@ async function seedEmployees(client) {
       INSERT INTO employees (
         first_name,
         last_name,
+        email,
         department,
         position,
         hire_date,
@@ -182,11 +237,12 @@ async function seedEmployees(client) {
         commission_pct,
         manager_id,
         performance_score
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `,
       [
         faker.person.firstName(),
         faker.person.lastName(),
+        faker.internet.email(),
         department,
         position,
         hireDate,
@@ -198,7 +254,7 @@ async function seedEmployees(client) {
     );
   }
 
-  console.log("Employees table seeded with 50 records");
+  console.log("Employees table seeded with 100 records");
 }
 
 async function seedInventory(client) {
@@ -220,7 +276,7 @@ async function seedInventory(client) {
     "Value Chain Suppliers",
   ];
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 200; i++) {
     const category = categories[Math.floor(Math.random() * categories.length)];
     const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
     const costPrice = faker.number.float({
@@ -323,24 +379,13 @@ async function seedOrders(client) {
     "Cash on Delivery",
   ];
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 200; i++) {
     const customer = customers[Math.floor(Math.random() * customers.length)];
     const totalAmount = faker.number.float({
       min: 50,
       max: 1000,
       precision: 0.01,
     });
-    const shippingCost = faker.number.float({
-      min: 5,
-      max: 50,
-      precision: 0.01,
-    });
-    const taxAmount = totalAmount * 0.1;
-    const hasDiscount = Math.random() > 0.7;
-    const discountAmount = hasDiscount
-      ? totalAmount *
-        faker.number.float({ min: 0.05, max: 0.2, precision: 0.01 })
-      : 0;
     const status = statuses[Math.floor(Math.random() * statuses.length)];
     const deliveryDays =
       status === "Delivered"
@@ -356,45 +401,50 @@ async function seedOrders(client) {
         order_date,
         total_amount,
         payment_method,
-        shipping_cost,
-        tax_amount,
-        discount_amount,
-        status,
-        delivery_days
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        shipping_address,
+        tracking_number,
+        estimated_delivery,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
       [
         customer.customer_id,
         faker.date.recent(90),
         totalAmount,
         paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-        shippingCost,
-        taxAmount,
-        discountAmount,
+        faker.location.streetAddress(),
+        faker.string.alphanumeric(10),
+        deliveryDays
+          ? new Date(Date.now() + deliveryDays * 24 * 60 * 60 * 1000)
+          : null,
         status,
-        deliveryDays,
       ]
     );
   }
 
-  console.log("Orders table seeded with 300 records");
+  console.log("Orders table seeded with 100 records");
 }
 
 async function seedSales(client) {
-  const [employees] = await client.query(
+  const employeesResult = await client.query(
     "SELECT employee_id, commission_pct FROM employees WHERE department = 'Sales'"
   );
-  const [products] = await client.query(
+  const productsResult = await client.query(
     "SELECT product_id, cost_price, selling_price FROM inventory"
   );
-  const [orders] = await client.query("SELECT order_id FROM orders");
+  const ordersResult = await client.query("SELECT order_id FROM orders");
 
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 200; i++) {
     const employee =
-      employees.rows[Math.floor(Math.random() * employees.rows.length)];
+      employeesResult.rows[
+        Math.floor(Math.random() * employeesResult.rows.length)
+      ];
     const product =
-      products.rows[Math.floor(Math.random() * products.rows.length)];
-    const order = orders.rows[Math.floor(Math.random() * orders.rows.length)];
+      productsResult.rows[
+        Math.floor(Math.random() * productsResult.rows.length)
+      ];
+    const order =
+      ordersResult.rows[Math.floor(Math.random() * ordersResult.rows.length)];
     const quantity = faker.number.int({ min: 1, max: 10 });
     const unitPrice = product.selling_price;
     const profit = quantity * (product.selling_price - product.cost_price);
@@ -432,11 +482,11 @@ async function seedSales(client) {
     );
   }
 
-  console.log("Sales table seeded with 500 records");
+  console.log("Sales table seeded with 200 records");
 }
 
 async function seedEmployeeBenefits(client) {
-  const [employees] = await client.query(
+  const employeesResult = await client.query(
     "SELECT employee_id, salary, position FROM employees"
   );
   const healthPlans = [
@@ -447,7 +497,7 @@ async function seedEmployeeBenefits(client) {
     "Comprehensive",
   ];
 
-  for (const employee of employees.rows) {
+  for (const employee of employeesResult.rows) {
     const isManager =
       employee.position.includes("Manager") ||
       employee.position.includes("Director");
@@ -523,5 +573,4 @@ async function seedEmployeeBenefits(client) {
   console.log("Employee Benefits table seeded with records");
 }
 
-// Run the seed function
 seedDatabase();
