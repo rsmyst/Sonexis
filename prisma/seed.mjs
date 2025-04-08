@@ -25,30 +25,29 @@ async function main() {
   // Set the sequence to start from 5000
   await prisma.$executeRaw`ALTER SEQUENCE "users_userId_seq" RESTART WITH 5000;`;
 
+  console.log("Starting database cleanup...");
+
+  // Delete all data in reverse order of dependencies
+  await prisma.visualization.deleteMany();
+  await prisma.queryHistory.deleteMany();
+  await prisma.dashboardWidget.deleteMany();
+  await prisma.dashboard.deleteMany();
+  await prisma.columnMetadata.deleteMany();
+  await prisma.databaseMetadata.deleteMany();
+  await prisma.userSettings.deleteMany();
+  await prisma.voiceProfile.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log("Database cleanup completed. Starting seeding process...");
+
+  // Set the sequence to start from 5000
+  await prisma.$executeRaw`ALTER SEQUENCE "users_userId_seq" RESTART WITH 5000;`;
+
   // Create admin user with a fixed salt for development
   // const salt = "$2a$10$CwTycUXWue0Thq9StjUM0u"; // Fixed salt for development
   // const hashedPassword = await bcrypt.hash("admin123", salt);
   const hashedPassword = "admin123"; //Test time password
 
-  // Function to process and convert image to base64
-  const processImage = async (imagePath) => {
-    try {
-      const buffer = await fs.promises.readFile(imagePath);
-      const resizedBuffer = await sharp(buffer)
-        .resize(500, 500, {
-          fit: "cover",
-          position: "center",
-        })
-        .png()
-        .toBuffer();
-      return `data:image/png;base64,${resizedBuffer.toString("base64")}`;
-    } catch (err) {
-      console.error(`Error processing image ${imagePath}:`, err);
-      return null;
-    }
-  };
-
-  // Create admin user
   await prisma.user.upsert({
     where: { userId: 42069 },
     update: {
@@ -122,22 +121,13 @@ async function main() {
     },
   ];
 
-  // Create test users with profile pictures
-  for (const [index, user] of testUsers.entries()) {
-    const imagePath = path.join(
-      process.cwd(),
-      "public",
-      "pfp",
-      `user${index + 1}.png`
-    );
-    const profilePicture = await processImage(imagePath);
-
+  // Create test users
+  for (const user of testUsers) {
     const createdUser = await prisma.user.create({
       data: {
         name: user.name,
         password: user.password,
         role: user.role,
-        profilePicture,
         settings: {
           create: user.settings,
         },

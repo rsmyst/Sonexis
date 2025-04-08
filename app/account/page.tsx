@@ -54,7 +54,7 @@ export default function AccountSettings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          [field]: !settings?.settings?.[field],
+          [field]: !settings?.settings?.settings?.[field],
         }),
       });
 
