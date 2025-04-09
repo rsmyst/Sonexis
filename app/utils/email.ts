@@ -8,12 +8,12 @@ const mg = mailgun({
 
 export async function sendWelcomeEmail(userEmail: string, userName: string) {
   const emailData = {
-    from: `MicSQL Team <no-reply@${process.env.MAILGUN_DOMAIN}>`,
+    from: `Sonexis Team <no-reply@${process.env.MAILGUN_DOMAIN}>`,
     to: userEmail,
-    subject: "Welcome to MicSQL - Voice Registration Required",
+    subject: "Welcome to Sonexis - Voice Registration Required",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Welcome to MicSQL, ${userName}!</h2>
+        <h2 style="color: #333;">Welcome to Sonexis, ${userName}!</h2>
         <p>You have been added to the organization. To get started, please follow these steps:</p>
         <ol>
           <li>Log in to your account using your email and password</li>
@@ -23,7 +23,7 @@ export async function sendWelcomeEmail(userEmail: string, userName: string) {
         </ol>
         <p>Your voice model is essential for using voice commands in the application.</p>
         <p>If you have any questions, please contact your administrator.</p>
-        <p>Best regards,<br>The MicSQL Team</p>
+        <p>Best regards,<br>The Sonexis Team</p>
       </div>
     `,
   };

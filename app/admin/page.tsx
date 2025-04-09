@@ -162,8 +162,8 @@ export default function AdminControls() {
   };
 
   const handleAddUser = async () => {
-    if (!newUserName || !newUserPassword || !newUserEmail) {
-      toast.error("Please enter user name, email and password");
+    if (!newUserName || !newUserPassword) {
+      toast.error("Please enter user name and password");
       return;
     }
 
@@ -360,13 +360,13 @@ export default function AdminControls() {
                         setNewUserName(e.target.value)
                       }
                     />
-                    <Input
+                    {/* <Input
                       placeholder="Enter email"
                       value={newUserEmail}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setNewUserEmail(e.target.value)
                       }
-                    />
+                    /> */}
                     <Input
                       type="password"
                       placeholder="Enter password"
@@ -548,7 +548,7 @@ export default function AdminControls() {
                 <div className="col-span-3">{selectedUser?.name}</div>
               )}
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            {/* <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Email</Label>
               {isEditMode ? (
                 <Input
@@ -559,7 +559,7 @@ export default function AdminControls() {
               ) : (
                 <div className="col-span-3">{selectedUser?.email}</div>
               )}
-            </div>
+            </div> */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Role</Label>
               {isEditMode ? (

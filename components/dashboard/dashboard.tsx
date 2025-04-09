@@ -37,7 +37,7 @@ export default function Dashboard() {
             className="text-3xl font-bold text-accent font-jaro"
             style={{ fontFamily: "Jaro, sans-serif" }}
           >
-            micSQL Dashboard
+            Sonexis Dashboard
           </h1>
           <div className="flex items-center space-x-4">
             <span className="text-accent">

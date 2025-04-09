@@ -7,7 +7,7 @@ import { AuthContainer } from "@/components/auth-container";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "micSQL",
+  title: "Sonexis",
   description: "Your lightweight SQL database management tool",
 };
 

@@ -8,7 +8,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-[#bfff00] font-jaro">
-            micSQL
+            Sonexis
           </h1>
           <p className="mt-2 text-lg text-[#bfff00]/80">
             Log in to your account
