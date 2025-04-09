@@ -302,7 +302,7 @@ export default function Graphs() {
                     queryConfig.chartType === "bar" ||
                     queryConfig.chartType === "area" ||
                     queryConfig.chartType === "line"
-                      ? "col-span-1 md:col-span-2"
+                      ? "col-span-1 "
                       : "col-span-1"
                   } bg-gray-900 p-6 rounded-lg`}
                 >
@@ -310,7 +310,7 @@ export default function Graphs() {
                   <p className="text-sm text-gray-400 mb-4">{queryConfig.description}</p>
                   
                   {hasData ? (
-                    <div className="h-[400px] w-full">
+                    <div className="w-full">
                       <Chart
                         data={chartDataForTitle}
                         xAxis={{

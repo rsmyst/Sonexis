@@ -267,14 +267,14 @@ export default function Home() {
           />
         </form>
 
-        <Link href="/graphs" className="mt-8">
+        {/* <Link href="/graphs" className="mt-8">
           <button className="px-6 py-3 bg-[#00e1ff] text-white rounded-lg hover:bg-[#ff00ff] transition-colors duration-300">
             View Graphs
           </button>
-        </Link>
+        </Link> */}
       </div>
 
-      {voiceModelStatus && (
+      {/* {voiceModelStatus && (
         <div className="fixed bottom-4 right-4 max-w-md">
           <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
@@ -282,7 +282,7 @@ export default function Home() {
             <AlertDescription>{voiceModelStatus}</AlertDescription>
           </Alert>
         </div>
-      )}
+      )} */}
 
       {errorMessage && (
         <div className="fixed bottom-4 right-4 max-w-md">
