@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Chart } from "@/components/Chart";
+import { Table } from "@/components/Table";
 import { useSearchParams } from "next/navigation";
 
 interface ChartData {
@@ -354,6 +355,14 @@ export default function Graphs() {
                         yAxisKeys={queryConfig.yAxisKeys}
                         margin={{ top: 20, right: 30, left: 55, bottom: 25 }}
                       />
+                      
+                      <div className="mt-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-md font-medium text-white">Raw Data</h3>
+                          <span className="text-xs text-gray-400">({chartDataForTitle.length} records)</span>
+                        </div>
+                        <Table data={chartDataForTitle} />
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-64">

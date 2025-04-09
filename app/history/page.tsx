@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ interface QueryHistory {
 
 export default function QueryHistoryPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [history, setHistory] = useState<QueryHistory[]>([]);
   const [selectedQuery, setSelectedQuery] = useState<QueryHistory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +87,7 @@ export default function QueryHistoryPage() {
 
   const handleShowResults = (query: QueryHistory) => {
     setSelectedQuery(query);
+    router.push(`/graphs?queryId=${query.id}`);
   };
 
   const formatDate = (dateString: string) => {
