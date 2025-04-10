@@ -2,6 +2,14 @@
 
 A modern web application that provides secure voice-based authentication and identity verification using advanced machine learning models.
 
+# Screenshots
+<img width="500" alt="S_1961" src="https://github.com/user-attachments/assets/056f9a63-2766-4670-92db-80f852da4a06" />
+<img width="500" alt="S_1962" src="https://github.com/user-attachments/assets/4e74be99-1547-4de0-85f1-70bbb20d90bb" />
+<img width="500" alt="S_1963" src="https://github.com/user-attachments/assets/3e5da66c-e72f-49d2-8cfe-f5097a2e04c7" />
+<img width="500" alt="S_1964" src="https://github.com/user-attachments/assets/66382d02-8802-4834-bd79-9be0f3820590" />
+<img width="500" alt="S_1965" src="https://github.com/user-attachments/assets/6619c2db-96eb-4079-9399-cb9d093c970c" />
+
+
 ## 🌟 Features
 
 ### Voice Authentication
@@ -9,6 +17,7 @@ A modern web application that provides secure voice-based authentication and ide
 - **Voice Enrollment**: Users can enroll their voice by recording a sample
 - **Voice Verification**: Real-time voice verification using ML-based embeddings
 - **Speech-to-Text**: Powered by OpenAI's Whisper model for accurate transcription
+- Voice Authentication Python Server Details available at the following repo: https://github.com/rsmyst/SpeakerAuth
 
 ### User Management
 
@@ -99,7 +108,7 @@ npx prisma db push
 npm run dev
 
 # Start the ML server (in a separate terminal)
-python ml_server/main.py
+python SpeakerAuth/speaker_auth.py
 ```
 
 ## 🔧 Configuration
