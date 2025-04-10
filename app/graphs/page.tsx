@@ -263,15 +263,15 @@ export default function Graphs() {
   console.log("Retrieved query configurations:", queryConfigs);
 
   return (
-    <div className="min-h-screen p-8 bg-black">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-[#bfff00] text-center p-25">
+    <div className="min-h-screen p-4 sm:p-8 bg-black">
+      <div className="w-full mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-[#bfff00] text-center">
           Data Visualizations
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8">
           {sortedQueries.length === 0 && !loading && !error && !message ? (
-             <div className="col-span-2 bg-gray-900 p-6 rounded-lg text-center">
+             <div className="col-span-1 bg-gray-900 p-6 rounded-lg text-center">
               <p className="text-gray-400">Could not load visualization for the selected query.</p>
             </div>
           ) : (
@@ -289,7 +289,7 @@ export default function Graphs() {
                  console.error(`Chart config for "${queryConfig.title}" is missing essential axis keys.`);
                  return (
                     <div key={`${queryConfig.title}-invalid-${index}`}
-                         className="col-span-1 md:col-span-2 bg-gray-900 p-6 rounded-lg">
+                         className="col-span-1 bg-gray-900 p-6 rounded-lg">
                       <h2 className="text-xl font-semibold mb-2 text-white">{queryConfig.title}</h2>
                       <p className="text-sm text-red-400 mb-4">Error: Chart configuration is incomplete (missing axis keys).</p>
                     </div>
@@ -299,64 +299,60 @@ export default function Graphs() {
               return (
                 <div
                   key={`${queryConfig.title}-${index}`}
-                  className={`${
-                    queryConfig.chartType === "bar" ||
-                    queryConfig.chartType === "area" ||
-                    queryConfig.chartType === "line"
-                      ? "col-span-1 "
-                      : "col-span-1"
-                  } bg-gray-900 p-6 rounded-lg`}
+                  className="col-span-1 bg-gray-900 p-6 rounded-lg w-full"
                 >
                   <h2 className="text-xl font-semibold mb-2 text-white">{queryConfig.title}</h2>
                   <p className="text-sm text-gray-400 mb-4">{queryConfig.description}</p>
                   
                   {hasData ? (
                     <div className="w-full">
-                      <Chart
-                        data={chartDataForTitle}
-                        xAxis={{
-                          key: queryConfig.xAxis,
-                          label:
-                            queryConfig.xAxis.charAt(0).toUpperCase() +
-                            queryConfig.xAxis.slice(1).replace(/_/g, ' '),
-                          formatter: (value) => String(value),
-                        }}
-                        yAxis={{
-                          key: queryConfig.yAxis,
-                          label: queryConfig.yAxis
-                            ? queryConfig.yAxis
-                                .split("_")
-                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(" ")
-                            : "Value",
-                          formatter: (value) => {
-                            const num = Number(value);
-                            if (isNaN(num)) return String(value);
+                      <div className="w-full">
+                        <Chart
+                          data={chartDataForTitle}
+                          xAxis={{
+                            key: queryConfig.xAxis,
+                            label:
+                              queryConfig.xAxis.charAt(0).toUpperCase() +
+                              queryConfig.xAxis.slice(1).replace(/_/g, ' '),
+                            formatter: (value) => String(value),
+                          }}
+                          yAxis={{
+                            key: queryConfig.yAxis,
+                            label: queryConfig.yAxis
+                              ? queryConfig.yAxis
+                                  .split("_")
+                                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(" ")
+                              : "Value",
+                            formatter: (value) => {
+                              const num = Number(value);
+                              if (isNaN(num)) return String(value);
 
-                            if (
-                              queryConfig.yAxis?.includes("salary") ||
-                              queryConfig.yAxis?.includes("profit") ||
-                              queryConfig.yAxis?.includes("revenue") ||
-                              queryConfig.yAxis?.includes("price") ||
-                              queryConfig.yAxis?.includes("cost") ||
-                              queryConfig.yAxis?.includes("spent") ||
-                              queryConfig.yAxis?.includes("value")
-                            ) {
-                               return `$${num.toLocaleString(undefined, { maximumFractionDigits: num % 1 === 0 ? 0 : 2 })}`;
-                            }
-                            return num.toLocaleString(undefined, { maximumFractionDigits: num % 1 === 0 ? 0 : 2 });
-                          },
-                        }}
-                        title={queryConfig.title}
-                        description={queryConfig.description}
-                        color="#4ade80"
-                        chartType={queryConfig.chartType || "bar"}
-                        stackKey={queryConfig.stackKey}
-                        yAxisKeys={queryConfig.yAxisKeys}
-                        margin={{ top: 20, right: 30, left: 55, bottom: 25 }}
-                      />
+                              if (
+                                queryConfig.yAxis?.includes("salary") ||
+                                queryConfig.yAxis?.includes("profit") ||
+                                queryConfig.yAxis?.includes("revenue") ||
+                                queryConfig.yAxis?.includes("price") ||
+                                queryConfig.yAxis?.includes("cost") ||
+                                queryConfig.yAxis?.includes("spent") ||
+                                queryConfig.yAxis?.includes("value")
+                              ) {
+                                 return `$${num.toLocaleString(undefined, { maximumFractionDigits: num % 1 === 0 ? 0 : 2 })}`;
+                              }
+                              return num.toLocaleString(undefined, { maximumFractionDigits: num % 1 === 0 ? 0 : 2 });
+                            },
+                          }}
+                          title={queryConfig.title}
+                          description={queryConfig.description}
+                          color="#4ade80"
+                          chartType={queryConfig.chartType || "bar"}
+                          stackKey={queryConfig.stackKey}
+                          yAxisKeys={queryConfig.yAxisKeys}
+                          margin={{ top: 20, right: 30, left: 55, bottom: 25 }}
+                        />
+                      </div>
                       
-                      <div className="mt-4">
+                      <div className="mt-6 w-full">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-md font-medium text-white">Raw Data</h3>
                           <span className="text-xs text-gray-400">({chartDataForTitle.length} records)</span>

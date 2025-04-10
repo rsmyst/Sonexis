@@ -57,7 +57,7 @@ export const Table = ({ data, title }: TableProps) => {
     <div className="w-full bg-gray-900 rounded-lg p-4 mt-2 overflow-x-auto">
       {title && <h3 className="text-white font-medium mb-3">{title}</h3>}
       
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end w-full mb-2">
         <button 
           onClick={downloadCSV}
           className="text-xs bg-gray-800 hover:bg-gray-700 text-[#bfff00] px-3 py-1 rounded transition-colors"
@@ -66,7 +66,7 @@ export const Table = ({ data, title }: TableProps) => {
         </button>
       </div>
       
-      <table className="min-w-full divide-y divide-gray-700">
+      <table className="w-full divide-y divide-gray-700">
         <thead>
           <tr>
             {columns.map((column) => (

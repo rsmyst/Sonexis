@@ -402,7 +402,7 @@ export default function AdminControls() {
                     </p>
                   </div>
                 ) : (
-                  users.map((user) => (
+                  users?.map((user) => (
                     <Card
                       key={user.id}
                       className="cursor-pointer hover:bg-zinc-900 transition-colors shadow-[4px_4px_0px_0px_rgba(191,255,0,1)]"
