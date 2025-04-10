@@ -1,128 +1,146 @@
-<<<<<<< HEAD
-# 🚀 HackToFuture 3.0 Repository Setup Guide
-#### To track your progress and collaborate effectively, every team must fork the official repository and follow the steps below.
-<br>
+# 🎙️ Sonexis - Voice Authentication System
 
-# 🔱 Fork the Repository
- #### Go to the GitHub page https://github.com/HackToFuture/HTF-XNN <br>
-  #### Click on the "Fork" button in the upper-right corner of the page.
-  #### Assign the repository name as "HTF - *<Team_Code>*".
+A modern web application that provides secure voice-based authentication and identity verification using advanced machine learning models.
 
-  <img align="center" width = "500" src = "https://docs.github.com/assets/cb-40742/mw-1440/images/help/repository/fork-button.webp" alt="fork image"/>
-  
-  
-  ```
-  Example :
-  <Team_Code> -> A09
-  Repository Name : HTF-A09
+## 🌟 Features
+
+### Voice Authentication
+
+- **Voice Enrollment**: Users can enroll their voice by recording a sample
+- **Voice Verification**: Real-time voice verification using ML-based embeddings
+- **Speech-to-Text**: Powered by OpenAI's Whisper model for accurate transcription
+
+### User Management
+
+- Secure authentication system
+- User profile management
+- Account settings and preferences
+- Admin dashboard for user management
+
+### Analytics & Visualization
+
+- Interactive graphs and charts
+- Usage statistics and history
+- Performance metrics visualization
+
+### Security
+
+- Secure voice data handling
+- Encrypted storage of voice embeddings
+- Protected API endpoints
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- Next.js 15.2.4
+- React 19
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Chart.js & Recharts
+- Radix UI Components
+
+### Backend
+
+- FastAPI (Python ML Server)
+- Next.js API Routes
+- Prisma ORM
+- MySQL/PostgreSQL Database
+
+### Authentication
+
+- NextAuth.js
+- Bcrypt for password hashing
+- JWT tokens
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- Python 3.8+
+- MySQL/PostgreSQL
+- Git
+
+### Installation
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/rsmyst/Sonexis.git
+cd sonexis
 ```
 
-# 📥 Clone Your Forked Repository
-  #### Go to your forked repository on GitHub.
-  #### Click the green "Code" button, then click the clipboard icon to copy the URL.
+2. Install frontend dependencies
 
-   <img align="center" width = "500" height="200" src = "https://docs.github.com/assets/cb-60499/mw-1440/images/help/repository/https-url-clone-cli.webp" alt="clone image"/>
- 
-  #### Open your terminal and run the following git clone command to copy the repository to your local machine.
-  #### Replace *repository-url* with the URL of your forked repository.
-  ```
-  git clone <repository-url>
+```bash
+npm install
 ```
 
+3. Set up environment variables
 
-# 🛠️ Start working on your project
-#### Begin building your solution! Collaborate with your teammates and push changes regularly.
-
-# 📝 Commit Your Changes
-#### Track and save your progress using Git:
-#### Check the status of your changes
-   ```
-    git status
- ```
-  
-
-  #### Use the git add command to stage the changes you want to commit
-  ```
-    git add .
- ```
-      
-  #### Commit with a meaningful message
-  #### *Option 1* : Simple Commit Format (Beginner Friendly)
-  #### Use this if you're new to Git
-   ```
-    git commit -m "Your descriptive commit message"
- ```
-#### *Option 2* : Conventional Commits (Recommended)
-#### Follow this format for more structured, professional commit history  
-```
-git commit -m "<type>(<scope>): <subject>"
-```
-| Type | Purpose |
-|----------|----------|
-| feat    | for a new feature for the user, not a new feature for build script. Such commit will trigger a release bumping a MINOR version    |
-| fix    | for a bug fix for the user, not a fix to a build script. Such commit will trigger a release bumping a PATCH version     |
-| perf    | for performance improvements. Such commit will trigger a release bumping a PATCH version    |
-| docs    | for changes to the documentation     |
-| test | for adding missing tests, refactoring tests; no production code change  |
-| style  | for formatting changes, missing semicolons, etc  |
-| refactor | for refactoring production code, e.g. renaming a variable  |
-| build | for updating build configuration, development tools or other changes irrelevant to the user|
-
-#### Scope: Area of change (e.g., api, ui, auth)
-#### Subject: One-line summary in present tense, no period at the end
-
-```
-Example: git commit -m "fix(button): fix submit button not working"
+```bash
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-# 🚀 Push Your Changes
-  #### Send your local commits to GitHub:
-  ```
-    git push origin
- ```
-# 🧠 Tips
-#### *Commit often* : Small, frequent commits help track progress and fix bugs easily.
-#### *Write clear messages* : Describe what you did in each commit.
-#### *Collaborate* : Make sure everyone in your team contributes.
+4. Initialize the database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+5. Start the development servers
+
+```bash
+# Start the frontend
+npm run dev
+
+# Start the ML server (in a separate terminal)
+python ml_server/main.py
+```
+
+## 🔧 Configuration
+
+The application requires several environment variables to be set:
+
+- `DATABASE_URL`: Database connection string
+- `NEXTAUTH_SECRET`: Secret for NextAuth.js
+- `ML_SERVER_URL`: URL of the Python ML server
+- `OPENAI_API_KEY`: For Whisper integration
+- Other service-specific keys
+
+## 📚 API Documentation
+
+### Voice Authentication Endpoints
+
+- `POST /api/voice/enroll`: Enroll a new voice sample
+- `POST /api/voice/verify`: Verify voice identity
+- `POST /api/voice/transcribe`: Convert speech to text
+
+### User Management Endpoints
+
+- `POST /api/auth/register`: Register new user
+- `POST /api/auth/login`: User login
+- `GET /api/user/profile`: Get user profile
+- `PUT /api/user/profile`: Update user profile
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 🙏 Acknowledgments
+
+- OpenAI Whisper for speech-to-text capabilities
+- The open-source community for various tools and libraries
+- Contributors and maintainers
 
 ---
 
-**For any issues or doubts, reach out to the organizing team.** *Happy hacking!* 💻✨
-=======
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
->>>>>>> f5b5d04 (Initial commit from Create Next App)
+For support or questions, please open an issue in the repository.

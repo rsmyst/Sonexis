@@ -32,12 +32,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.5.0
- * Query Engine version: 173f8d54f8d52e692c7e27e72a88314ec7aeff60
+ * Prisma Client JS version: 6.6.0
+ * Query Engine version: f676762280b54cd07c770017ed3711ddde35f37a
  */
 Prisma.prismaVersion = {
-  client: "6.5.0",
-  engine: "173f8d54f8d52e692c7e27e72a88314ec7aeff60"
+  client: "6.6.0",
+  engine: "f676762280b54cd07c770017ed3711ddde35f37a"
 }
 
 Prisma.PrismaClientKnownRequestError = PrismaClientKnownRequestError;
@@ -311,7 +311,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/shishir/Documents/main projects/micsql/generated/main",
+      "value": "C:\\Users\\rahul\\Desktop\\My Code\\micSQL\\generated\\main",
       "fromEnvVar": null
     },
     "config": {
@@ -320,12 +320,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "debian-openssl-3.0.x",
+        "value": "windows",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/shishir/Documents/main projects/micsql/prisma/schema.prisma",
+    "sourceFilePath": "C:\\Users\\rahul\\Desktop\\My Code\\micSQL\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -333,12 +333,13 @@ const config = {
     "schemaEnvPath": "../../.env"
   },
   "relativePath": "../../prisma",
-  "clientVersion": "6.5.0",
-  "engineVersion": "173f8d54f8d52e692c7e27e72a88314ec7aeff60",
+  "clientVersion": "6.6.0",
+  "engineVersion": "f676762280b54cd07c770017ed3711ddde35f37a",
   "datasourceNames": [
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -387,8 +388,8 @@ exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
 // file annotations for bundling tools to include these files
-path.join(__dirname, "libquery_engine-debian-openssl-3.0.x.so.node");
-path.join(process.cwd(), "generated/main/libquery_engine-debian-openssl-3.0.x.so.node")
+path.join(__dirname, "query_engine-windows.dll.node");
+path.join(process.cwd(), "generated/main/query_engine-windows.dll.node")
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "generated/main/schema.prisma")

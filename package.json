@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "warmup": "node warmup.js",
+    "dev:warmup": "concurrently \"next dev\" \"npm run warmup\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -57,6 +59,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
     "tailwindcss": "^4",

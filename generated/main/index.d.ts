@@ -423,8 +423,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.5.0
-   * Query Engine version: 173f8d54f8d52e692c7e27e72a88314ec7aeff60
+   * Prisma Client JS version: 6.6.0
+   * Query Engine version: f676762280b54cd07c770017ed3711ddde35f37a
    */
   export type PrismaVersion = {
     client: string
@@ -3026,7 +3026,7 @@ export namespace Prisma {
 
   /**
    * Fields of the User model
-   */ 
+   */
   interface UserFieldRefs {
     readonly id: FieldRef<"User", 'String'>
     readonly userId: FieldRef<"User", 'Int'>
@@ -4155,7 +4155,7 @@ export namespace Prisma {
 
   /**
    * Fields of the DatabaseMetadata model
-   */ 
+   */
   interface DatabaseMetadataFieldRefs {
     readonly id: FieldRef<"DatabaseMetadata", 'String'>
     readonly tableName: FieldRef<"DatabaseMetadata", 'String'>
@@ -5254,7 +5254,7 @@ export namespace Prisma {
 
   /**
    * Fields of the ColumnMetadata model
-   */ 
+   */
   interface ColumnMetadataFieldRefs {
     readonly id: FieldRef<"ColumnMetadata", 'String'>
     readonly databaseMetadataId: FieldRef<"ColumnMetadata", 'String'>
@@ -6404,7 +6404,7 @@ export namespace Prisma {
 
   /**
    * Fields of the QueryHistory model
-   */ 
+   */
   interface QueryHistoryFieldRefs {
     readonly id: FieldRef<"QueryHistory", 'String'>
     readonly userId: FieldRef<"QueryHistory", 'String'>
@@ -7518,7 +7518,7 @@ export namespace Prisma {
 
   /**
    * Fields of the Visualization model
-   */ 
+   */
   interface VisualizationFieldRefs {
     readonly id: FieldRef<"Visualization", 'String'>
     readonly queryId: FieldRef<"Visualization", 'String'>
@@ -8573,7 +8573,7 @@ export namespace Prisma {
 
   /**
    * Fields of the Dashboard model
-   */ 
+   */
   interface DashboardFieldRefs {
     readonly id: FieldRef<"Dashboard", 'String'>
     readonly userId: FieldRef<"Dashboard", 'String'>
@@ -9698,7 +9698,7 @@ export namespace Prisma {
 
   /**
    * Fields of the DashboardWidget model
-   */ 
+   */
   interface DashboardWidgetFieldRefs {
     readonly id: FieldRef<"DashboardWidget", 'String'>
     readonly dashboardId: FieldRef<"DashboardWidget", 'String'>
@@ -10784,7 +10784,7 @@ export namespace Prisma {
 
   /**
    * Fields of the UserSettings model
-   */ 
+   */
   interface UserSettingsFieldRefs {
     readonly id: FieldRef<"UserSettings", 'String'>
     readonly userId: FieldRef<"UserSettings", 'String'>
@@ -11942,7 +11942,7 @@ export namespace Prisma {
 
   /**
    * Fields of the customers model
-   */ 
+   */
   interface customersFieldRefs {
     readonly customer_id: FieldRef<"customers", 'Int'>
     readonly first_name: FieldRef<"customers", 'String'>
@@ -13171,7 +13171,7 @@ export namespace Prisma {
 
   /**
    * Fields of the employee_benefits model
-   */ 
+   */
   interface employee_benefitsFieldRefs {
     readonly benefit_id: FieldRef<"employee_benefits", 'Int'>
     readonly employee_id: FieldRef<"employee_benefits", 'Int'>
@@ -14377,7 +14377,7 @@ export namespace Prisma {
 
   /**
    * Fields of the employees model
-   */ 
+   */
   interface employeesFieldRefs {
     readonly employee_id: FieldRef<"employees", 'Int'>
     readonly first_name: FieldRef<"employees", 'String'>
@@ -15591,7 +15591,7 @@ export namespace Prisma {
 
   /**
    * Fields of the inventory model
-   */ 
+   */
   interface inventoryFieldRefs {
     readonly product_id: FieldRef<"inventory", 'Int'>
     readonly product_name: FieldRef<"inventory", 'String'>
@@ -16766,7 +16766,7 @@ export namespace Prisma {
 
   /**
    * Fields of the orders model
-   */ 
+   */
   interface ordersFieldRefs {
     readonly order_id: FieldRef<"orders", 'Int'>
     readonly customer_id: FieldRef<"orders", 'Int'>
@@ -18013,7 +18013,7 @@ export namespace Prisma {
 
   /**
    * Fields of the sales model
-   */ 
+   */
   interface salesFieldRefs {
     readonly sale_id: FieldRef<"sales", 'Int'>
     readonly employee_id: FieldRef<"sales", 'Int'>
@@ -18758,7 +18758,7 @@ export namespace Prisma {
 
 
   /**
-   * Field references 
+   * Field references
    */
 
 
@@ -21400,7 +21400,7 @@ export namespace Prisma {
     isIdentifier?: SortOrder
     isSensitive?: SortOrder
   }
-  export type JsonNullableFilter<$PrismaModel = never> = 
+  export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
         Required<JsonNullableFilterBase<$PrismaModel>>
@@ -21487,7 +21487,7 @@ export namespace Prisma {
   export type QueryHistorySumOrderByAggregateInput = {
     executionTime?: SortOrder
   }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
         Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
@@ -22985,7 +22985,7 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
-  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
         Required<NestedJsonNullableFilterBase<$PrismaModel>>
